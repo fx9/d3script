@@ -1,3 +1,6 @@
+function print(name, value)
+    OutputLogMessage("%s = %s\n", tostring(name), tostring(value))
+end
 ---- click utilities ----
 
 modifier_check_table={
@@ -201,22 +204,25 @@ function loop_operations(key_cd_map)
     end
 end
 
-function switch_operations(key_cd_map)
+function switch_operations(key_cd_map, mouseleft_alternate)
     for key, cd in pairs(key_cd_map) do
         if cd == -1 then
             set_on(key)
         end
     end
     set_on("capslock")
+    running = true
+    alter_mouseleft = false
+    new_alter_mouseleft = false
     while true do
         for key, cd in pairs(key_cd_map) do
-            if cd ~= -1 then
+            if cd ~= -1 and not (key == "mouseleft" and alter_mouseleft) then
                 cd_click(key, cd)
             end
         end
         Sleep(100)
         if is_off("scrolllock", callback_set_off_map(key_cd_map)) then
-            return
+            break
         end
         caps_on = is_on("capslock")
         if caps_on ~= running then
@@ -235,60 +241,163 @@ function switch_operations(key_cd_map)
                 end
             end
         end
+        new_alter_mouseleft = (mouseleft_alternate ~= nil and running and is_on("mouseleft"))
+        if alter_mouseleft ~= new_alter_mouseleft then
+            alter_mouseleft = new_alter_mouseleft
+            if alter_mouseleft then
+                set_on(mouseleft_alternate)
+            else
+                set_off(mouseleft_alternate)
+            end
+        end
+        
+        if is_on("numlock") then
+            set_off("numlock")
+            if running then
+                for key, cd in pairs(key_cd_map) do
+                    if cd == -1 then
+                        set_off(key)
+                    end
+                end
+                click("mouseleft")
+                for key, cd in pairs(key_cd_map) do
+                    if cd == -1 then
+                        set_on(key)
+                    end
+                end
+            end
+            while is_on("numlock") do
+                Sleep(50)
+            end
+        end
+    end
+    set_off("capslock")
+    if mouseleft_alternate ~= nil then
+        set_off(mouseleft_alternate)
     end
 end
 
-
-
--- 此处是shift控制的脚本
--- 用--关掉不需要的按键
--- 其他按键 = 号后的数字表示按键间隔的毫秒数，500 即 0.5 秒
--- 用 -1 表示此键一直按住
--- mouseleft表示鼠标左键
--- mouseright表示鼠标右键
--- 这个脚本表示 一直按住鼠标左键，每0.5秒按一次234和右键
-function shift_example()
+function simple_major_attack()
     loop_operations({
-        -- ["1"] = 500,
+        ["mouseleft"] = -1,
+    })
+end
+
+function loop_cru_hammer()
+    loop_operations({
+        ["1"] = -1,
+        ["2"] = 2500,
+        ["3"] = 3500,
+        ["4"] = 1000,
+        ["mouseleft"] = 500,
+    })
+end
+
+function loop_dh_multishoot()
+    loop_operations({
+        ["1"] = -1,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = 3000,
+    })
+end
+
+function loop_dh_grenade()
+    loop_operations({
+        ["1"] = -1,
         ["2"] = 500,
         ["3"] = 500,
         ["4"] = 500,
+    })
+end
+
+function loop_monk()
+    loop_operations({
         ["mouseleft"] = -1,
+        ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
         ["mouseright"] = 500,
     })
 end
 
 
--- 此处是scrolllock控制的脚本
--- 用--关掉不需要的按键
--- 其他按键 = 号后的数字表示按键间隔的毫秒数，500 即 0.5 秒
--- 用 -1 表示此键一直按住
--- mouseleft表示鼠标左键
--- mouseright表示鼠标右键
--- 这个脚本表示 一直按住1，每0.5秒按一次234
-function scrolllock_example()
+function switch_dh_multishoot()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = -1,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = 3000,
+    }, "spacebar")
+end
+
+
+function switch_dh_cluster()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = -1,
+        ["2"] = 8000,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = 3000,
+    }, "spacebar")
+end
+
+
+function switch_dh_grenade()
     switch_operations({
         ["1"] = -1,
         ["2"] = 500,
         ["3"] = 500,
         ["4"] = 500,
-        -- ["mouseleft"] = -1,
-        -- ["mouseright"] = 500,
     })
+end
+
+function switch_wd()
+    switch_operations({
+        ["1"] = -1,
+        ["3"] = 500,
+        ["4"] = 500,
+    }, "spacebar")
+end
+
+function switch_operation_fist_monk()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = -1,
+        ["4"] = 500,
+        ["mouseleft"] = 500,
+    }, "spacebar")
+end
+
+
+function switch_operation_bbn()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = 10000,
+        ["2"] = 60000,
+        ["3"] = 6000,
+        ["4"] = 60000,
+        ["mouseleft"] = 5000,
+    }, "spacebar")
 end
 
 
 function OnEvent(event, arg)
     OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
-
-	-- 此处 arg == 8 将 8 替换为你刚才分配了 scrolllock 键的按键编号
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 8) then
-        scrolllock_example()
+        -- switch_dh_cluster()
+        -- switch_dh_multishoot()
+        switch_dh_grenade()
     end 
 
-	-- 此处 arg == 3 将 3 替换为你刚才分配了 shift 键的按键编号
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 3) then
-        shift_example()
-    end
+        loop_dh_multishoot()
+    end 
+
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 11) then
+        simple_major_attack()
+    end 
 end

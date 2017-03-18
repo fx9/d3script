@@ -250,26 +250,6 @@ function switch_operations(key_cd_map, mouseleft_alternate)
                 set_off(mouseleft_alternate)
             end
         end
-        
-        if is_on("numlock") then
-            set_off("numlock")
-            if running then
-                for key, cd in pairs(key_cd_map) do
-                    if cd == -1 then
-                        set_off(key)
-                    end
-                end
-                click("mouseleft")
-                for key, cd in pairs(key_cd_map) do
-                    if cd == -1 then
-                        set_on(key)
-                    end
-                end
-            end
-            while is_on("numlock") do
-                Sleep(50)
-            end
-        end
     end
     set_off("capslock")
     if mouseleft_alternate ~= nil then
@@ -302,10 +282,19 @@ function loop_dh_multishoot()
     })
 end
 
+function loop_dh_cluster()
+    loop_operations({
+        ["1"] = -1,
+        ["2"] = 8000,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = 3000,
+    })
+end
+
 function loop_dh_grenade()
     loop_operations({
         ["1"] = -1,
-        ["2"] = 500,
         ["3"] = 500,
         ["4"] = 500,
     })
@@ -348,10 +337,20 @@ end
 function switch_dh_grenade()
     switch_operations({
         ["1"] = -1,
-        ["2"] = 500,
         ["3"] = 500,
         ["4"] = 500,
-    })
+    }, "spacebar")
+end
+
+function switch_wiz()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = -1,
+        ["2"] = 6000,
+        ["3"] = 6000,
+        ["4"] = 60000,
+        ["mouseleft"] = 300000,
+    }, "spacebar")
 end
 
 function switch_wd()
@@ -384,20 +383,134 @@ function switch_operation_bbn()
 end
 
 
+
+function click_mapping(modifier_to_check, key_to_click)
+    if is_on(modifier_to_check) then
+        click(key_to_click)
+        set_off(modifier_to_check)
+        return true
+    end
+    return false
+end
+
+function negative_click_mapping(modifier_to_check, key_to_click)
+    if is_off(modifier_to_check) then
+        click(key_to_click)
+        set_on(modifier_to_check)
+        return true
+    end
+    return false
+end
+
+function cast_wiz_archon()
+    release("lshift")
+    press("lshift")
+    click("mouseleft")
+    release("lshift")
+    Sleep(100)
+    curr_time = GetRunningTime()
+    end_time = curr_time + 20000
+    next_time = curr_time + 31900
+    click("1")
+    Sleep(100)
+    press("mouseright")
+    init_time = curr_time + 500
+    init_done = false
+    warn_time = end_time - 1500
+    warned = false
+    while curr_time < end_time do
+        if not warned and curr_time >= warn_time then
+            click("0")
+            warned = true
+        end
+        if not init_done and curr_time >= init_time then
+            click("2")
+            init_done = true
+        end
+        Sleep(50)
+        if is_off("capslock", callback_set_off("mouseright")) then
+            return false
+        end
+        if is_off("scrolllock") then
+            break
+        end
+        negative_click_mapping("mouseright", "3")
+        curr_time = GetRunningTime()
+    end
+    set_off("mouseright")
+    set_off("scrolllock")
+    return wait_wiz_archon(next_time)
+end
+   
+
+function wait_wiz_archon(end_time)
+    alter_mouseleft = false
+    new_alter_mouseleft = false
+    mouseleft_alternate = "spacebar"
+    set_on("2")
+    while GetRunningTime() < end_time or is_on("ctrl") do
+        Sleep(50)
+        if is_off("capslock", callback_set_off("2", mouseleft_alternate)) then
+            return false
+        end
+        if is_on("scrolllock", callback_set_off("2", mouseleft_alternate)) then
+            return true
+        end
+        new_alter_mouseleft = (mouseleft_alternate ~= nil and running and is_on("mouseleft") and is_off("ctrl"))
+        if alter_mouseleft ~= new_alter_mouseleft then
+            alter_mouseleft = new_alter_mouseleft
+            if alter_mouseleft then
+                set_on(mouseleft_alternate)
+            else
+                set_off(mouseleft_alternate)
+            end
+        end
+    end
+    set_off("2")
+    set_on("scrolllock")
+    return true
+end
+    
+   
+function switch_wiz_archon()
+    click("3", "4")
+    set_on("capslock")
+    Sleep(200)
+    set_off("scrolllock")
+    Sleep(200)
+    curr_time = GetRunningTime()
+    if not wait_wiz_archon(curr_time+100000) then
+        return
+    end
+    while cast_wiz_archon() do
+        OutputLogMessage("time = %d\n", GetRunningTime())
+    end
+    set_off("scrolllock")
+    set_off("capslock")
+end
+
+last_release_switch=-1
+
 function OnEvent(event, arg)
     OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 8) then
+        if GetRunningTime()-last_release_switch <= 5 then
+            return
+        end
         -- switch_dh_cluster()
         -- switch_dh_multishoot()
-        switch_dh_grenade()
+        -- switch_dh_grenade()
+        -- switch_wiz()
+        switch_wiz_archon()
     end 
 
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 3) then
-        loop_dh_multishoot()
+    if (event == "MOUSE_BUTTON_RELEASED" and arg == 8) then
+        last_release_switch=GetRunningTime()
     end 
 
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 11) then
         simple_major_attack()
     end 
+
 end

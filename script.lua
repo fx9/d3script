@@ -241,7 +241,7 @@ function switch_operations(key_cd_map, mouseleft_alternate)
                 end
             end
         end
-        new_alter_mouseleft = (mouseleft_alternate ~= nil and running and is_on("mouseleft"))
+        new_alter_mouseleft = (mouseleft_alternate ~= nil and running and is_on("mouseleft") and is_off("ctrl"))
         if alter_mouseleft ~= new_alter_mouseleft then
             alter_mouseleft = new_alter_mouseleft
             if alter_mouseleft then
@@ -262,127 +262,6 @@ function simple_major_attack()
         ["mouseleft"] = -1,
     })
 end
-
-function loop_cru_hammer()
-    loop_operations({
-        ["1"] = -1,
-        ["2"] = 2500,
-        ["3"] = 3500,
-        ["4"] = 1000,
-        ["mouseleft"] = 500,
-    })
-end
-
-function loop_dh_multishoot()
-    loop_operations({
-        ["1"] = -1,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseleft"] = 3000,
-    })
-end
-
-function loop_dh_cluster()
-    loop_operations({
-        ["1"] = -1,
-        ["2"] = 8000,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseleft"] = 3000,
-    })
-end
-
-function loop_dh_grenade()
-    loop_operations({
-        ["1"] = -1,
-        ["3"] = 500,
-        ["4"] = 500,
-    })
-end
-
-function loop_monk()
-    loop_operations({
-        ["mouseleft"] = -1,
-        ["2"] = 500,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseright"] = 500,
-    })
-end
-
-
-function switch_dh_multishoot()
-    switch_operations({
-        ["lshift"] = -1,
-        ["1"] = -1,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseleft"] = 3000,
-    }, "spacebar")
-end
-
-
-function switch_dh_cluster()
-    switch_operations({
-        ["lshift"] = -1,
-        ["1"] = -1,
-        ["2"] = 8000,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseleft"] = 3000,
-    }, "spacebar")
-end
-
-
-function switch_dh_grenade()
-    switch_operations({
-        ["1"] = -1,
-        ["3"] = 500,
-        ["4"] = 500,
-    }, "spacebar")
-end
-
-function switch_wiz()
-    switch_operations({
-        ["lshift"] = -1,
-        ["1"] = -1,
-        ["2"] = 6000,
-        ["3"] = 6000,
-        ["4"] = 60000,
-        ["mouseleft"] = 300000,
-    }, "spacebar")
-end
-
-function switch_wd()
-    switch_operations({
-        ["1"] = -1,
-        ["3"] = 500,
-        ["4"] = 500,
-    }, "spacebar")
-end
-
-function switch_operation_fist_monk()
-    switch_operations({
-        ["lshift"] = -1,
-        ["1"] = -1,
-        ["4"] = 500,
-        ["mouseleft"] = 500,
-    }, "spacebar")
-end
-
-
-function switch_operation_bbn()
-    switch_operations({
-        ["lshift"] = -1,
-        ["1"] = 10000,
-        ["2"] = 60000,
-        ["3"] = 6000,
-        ["4"] = 60000,
-        ["mouseleft"] = 5000,
-    }, "spacebar")
-end
-
-
 
 function click_mapping(modifier_to_check, key_to_click)
     if is_on(modifier_to_check) then
@@ -489,6 +368,55 @@ function switch_wiz_archon()
     set_off("capslock")
 end
 
+function switch_cru_hammer()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = -1,
+        ["2"] = 6000,
+        ["3"] = 5000,
+        ["4"] = 500,
+        ["mouseleft"] = 7000,
+    }, "spacebar")
+end
+
+function loop_monk()
+    loop_operations({
+        ["mouseleft"] = -1,
+        ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseright"] = 500,
+    })
+end
+
+function switch_dh_multishoot()
+    switch_operations({
+        ["lshift"] = -1,
+        ["1"] = -1,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = 3000,
+    }, "spacebar")
+end
+
+function switch_dh_cluster()
+    switch_operations({
+        ["1"] = -1,
+        ["2"] = 8000,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = 3000,
+    }, "spacebar")
+end
+
+function switch_dh_grenade()
+    switch_operations({
+        ["1"] = -1,
+        ["3"] = 500,
+        ["4"] = 500,
+    }, "spacebar")
+end
+
 last_release_switch=-1
 
 function OnEvent(event, arg)
@@ -501,8 +429,8 @@ function OnEvent(event, arg)
         -- switch_dh_cluster()
         -- switch_dh_multishoot()
         -- switch_dh_grenade()
-        -- switch_wiz()
-        switch_wiz_archon()
+        -- switch_wiz_archon()
+        switch_cru_hammer()
     end 
 
     if (event == "MOUSE_BUTTON_RELEASED" and arg == 8) then

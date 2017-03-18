@@ -1,38 +1,3 @@
-event_times={}
-DOUBLE_CLICK_TIME_MS=300
-
-function last_event_time(event, arg)
-    if (event_times[event] == nil) then
-        return 0
-    end
-    last_event=event_times[event][arg]
-    if (last_event == nil) then
-        return 0
-    end
-    return last_event
-end
-
-function record_event_time(event, arg)
-    if (event_times[event] == nil) then
-        event_times[event] = {}
-    end
-    curr_event = GetRunningTime()
-    OutputLogMessage("curr_event = %s\n", curr_event)
-    event_times[event][arg] = curr_event
-    return curr_event
-end
-
-function record_and_get_event_time_diff(event, arg)
-    last_event=last_event_time(event, arg)
-    curr_event=record_event_time(event, arg)
-    return curr_event - last_event
-end
-
-function record_and_check_double_click(event, arg, double_click_time)
-    double_click_time = double_click_time or DOUBLE_CLICK_TIME_MS
-    return record_and_get_event_time_diff(event, arg) < double_click_time
-end
-
 ---- click utilities ----
 
 modifier_check_table={
@@ -217,18 +182,6 @@ end
 
 ---- D3 specific functions ----
 
-function simple_major_attack()
-    press("mouseleft")
-    while true do
-        Sleep(50)
-        if is_off("shift", callback_release("mouseleft")) then
-            return
-        end
-    end
-end
-
-
-
 function loop_operations(key_cd_map)
     for key, cd in pairs(key_cd_map) do
         if cd == -1 then
@@ -241,181 +194,11 @@ function loop_operations(key_cd_map)
                 cd_click(key, cd)
             end
         end
-        Sleep(100)
+        Sleep(50)
         if is_off("shift", callback_set_off_map(key_cd_map)) then
             return
         end
     end
-end
-
-
-function loop_operation_cru2()
-    press("1")
-    while true do
-        cd_click("2", 2500)
-        cd_click("3", 3500)
-        cd_click("4", 1000)
-        cd_click("mouseleft", 500)
-        Sleep(100)
-        if is_off("shift", callback_release("1")) then
-            return
-        end
-    end
-end
-
-function loop_operation_cru()
-    press("1")
-    while true do
-        click("2", "3")
-        for i = 0, 3 do
-            click("4", "mouseleft")
-            for j = 0, 10 do
-                Sleep(100)
-                if is_off("shift", callback_release("1")) then
-                    return
-                end
-            end
-        end
-    end
-end
-
-function loop_operation_dh_1_L34()
-    press("1")
-    while true do
-        click("mouseleft")
-        for i = 0, 6 do
-            click("3", "4")
-            for j = 0, 5 do
-                Sleep(100)
-                if is_off("shift", callback_release("1")) then
-                    return
-                end
-            end
-        end
-    end
-end
-
-function loop_operation_dh_1_234()
-    press("1")
-    while true do
-        click("2", "3", "4")
-        for j = 0, 5 do
-            Sleep(100)
-            if is_off("shift", callback_release("1")) then
-                return
-            end
-        end
-    end
-end
-
-function loop_operation_monk()
-    press("mouseleft")
-    while true do
-        click("2", "3", "4", "mouseright")
-        for j = 0, 5 do
-            Sleep(100)
-            if is_off("shift", callback_release("mouseleft")) then
-                return
-            end
-        end
-    end
-end
-
-function switch_operation_wiz()
-    click("2")
-    Sleep(200)
-    click("3")
-    Sleep(300)
-    click("4")
-    Sleep(100)
-    click("2")
-    press("mouseright")
-    check_interval = 50
-    total_time = 20000
-    warn_time = 18000
-    loops = total_time / check_interval
-    warn_loop = warn_time / check_interval
-    for i = 0, loops do
-        if i == warn_loop then
-            click("0")
-        end
-        Sleep(check_interval)
-        if is_off("scrolllock", callback_release("mouseright")) then
-            return
-        end
-        if is_off("mouseright") then
-            click("3")
-            -- must release before press or it will be ignored
-            release("mouseright")
-            press("mouseright")
-        end
-    end
-    release("mouseright")
-    click("scrolllock")
-end
-
-
-function exit_callback_dh()
-    release("1")
-    set_off("capslock")
-end
-
-function switch_operation_dh()
-    press("1")
-    if not IsKeyLockOn("capslock") then
-        PressAndReleaseKey("capslock")
-    end
-    running = true
-    while true do
-        click("2", "3", "4")
-        for j = 0, 5 do
-            Sleep(100)
-            if is_off("scrolllock", exit_callback_dh) then
-                return
-            end
-            caps_on = is_on("capslock")
-            if caps_on ~= running then
-                running = caps_on
-                release("1")
-                if running then
-                    press("1")
-                end
-            end
-        end
-    end
-end
-
-function switch_operation_dh2()
-    press("1")
-    set_on("capslock")
-    running = true
-    while true do
-        cd_click("2", 500)
-        cd_click("3", 500)
-        cd_click("4", 500)
-        Sleep(100)
-        if is_off("scrolllock", exit_callback_dh) then
-            return
-        end
-        caps_on = is_on("capslock")
-        if caps_on ~= running then
-            running = caps_on
-            release("1")
-            if running then
-                press("1")
-            end
-        end
-    end
-end
-
-
-function switch_operation_dh3()
-    switch_operations({
-        ["1"] = -1,
-        ["2"] = 500,
-        ["3"] = 500,
-        ["4"] = 500,
-    })
 end
 
 function switch_operations(key_cd_map)
@@ -457,18 +240,55 @@ end
 
 
 
+-- 此处是shift控制的脚本
+-- 用--关掉不需要的按键
+-- 其他按键 = 号后的数字表示按键间隔的毫秒数，500 即 0.5 秒
+-- 用 -1 表示此键一直按住
+-- mouseleft表示鼠标左键
+-- mouseright表示鼠标右键
+-- 这个脚本表示 一直按住鼠标左键，每0.5秒按一次234和右键
+function shift_example()
+    loop_operations({
+        -- ["1"] = 500,
+        ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseleft"] = -1,
+        ["mouseright"] = 500,
+    })
+end
+
+
+-- 此处是scrolllock控制的脚本
+-- 用--关掉不需要的按键
+-- 其他按键 = 号后的数字表示按键间隔的毫秒数，500 即 0.5 秒
+-- 用 -1 表示此键一直按住
+-- mouseleft表示鼠标左键
+-- mouseright表示鼠标右键
+-- 这个脚本表示 一直按住1，每0.5秒按一次234
+function scrolllock_example()
+    switch_operations({
+        ["1"] = -1,
+        ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
+        -- ["mouseleft"] = -1,
+        -- ["mouseright"] = 500,
+    })
+end
+
+
 function OnEvent(event, arg)
     OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
+
+	-- 此处 arg == 8 将 8 替换为你刚才分配了 scrolllock 键的按键编号
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 8) then
-        switch_operation_dh3()
+        scrolllock_example()
     end 
 
+	-- 此处 arg == 3 将 3 替换为你刚才分配了 shift 键的按键编号
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 3) then
-        loop_operation_dh_1_L34()
-    end 
-
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 11) then
-        simple_major_attack()
-    end 
+        shift_example()
+    end
 end

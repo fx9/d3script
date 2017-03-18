@@ -109,13 +109,6 @@ function set_on(...)
     set_on_list(arg)
 end
 
-function callback_set_on(...)
-    function callback()
-        set_on_list(arg)
-    end
-    return callback
-end
-
 function set_off_list(keys)
     for i, key in ipairs(keys) do
         if lock_keys[key] ~= nil then
@@ -132,6 +125,36 @@ function set_off(...)
     set_off_list(arg)
 end
 
+function set_on_map(key_cd_map)
+    for key, cd in pairs(key_cd_map) do
+        if cd == -1 then
+            set_on(key)
+        end
+    end
+end
+
+function set_off_map(key_cd_map)
+    for key, cd in pairs(key_cd_map) do
+        if cd == -1 then
+            set_off(key)
+        end
+    end
+end
+
+function callback_set_on(...)
+    function callback()
+        set_on_list(arg)
+    end
+    return callback
+end
+
+function callback_set_on_map(key_cd_map)
+    function callback()
+        set_on_map(key_cd_map)
+    end
+    return callback
+end
+
 function callback_set_off(...)
     function callback()
         set_off_list(arg)
@@ -141,11 +164,7 @@ end
 
 function callback_set_off_map(key_cd_map)
     function callback()
-        for key, cd in pairs(key_cd_map) do
-            if cd == -1 then
-                set_off(key)
-            end
-        end
+        set_off_map(key_cd_map)
     end
     return callback
 end
@@ -185,18 +204,19 @@ end
 
 ---- D3 specific functions ----
 
-function loop_operations(key_cd_map)
+function click_key_cd_map(key_cd_map, avoid_map)
     for key, cd in pairs(key_cd_map) do
-        if cd == -1 then
-            set_on(key)
+        -- only click when avoid_map[key] is nil or false
+        if cd ~= -1 and (avoid_map == nil or not avoid_map[key])then
+            cd_click(key, cd)
         end
     end
+end
+
+function loop_operations(key_cd_map)
+    set_on_map(key_cd_map)
     while true do
-        for key, cd in pairs(key_cd_map) do
-            if cd ~= -1 then
-                cd_click(key, cd)
-            end
-        end
+        click_key_cd_map(key_cd_map)
         Sleep(50)
         if is_off("shift", callback_set_off_map(key_cd_map)) then
             return
@@ -204,54 +224,45 @@ function loop_operations(key_cd_map)
     end
 end
 
-function switch_operations(key_cd_map, mouseleft_alternate)
-    for key, cd in pairs(key_cd_map) do
-        if cd == -1 then
-            set_on(key)
+function edge_trigger(old_val, new_val, up_func, down_func)
+    if old_val ~= new_val then
+        if new_val then
+            up_func()
+        else
+            down_func()
         end
     end
-    set_on("capslock")
+    return new_val
+end
+
+function switch_operations(key_cd_map, mouseleft_alternate)
+    set_on_map(key_cd_map)
     running = true
     alter_mouseleft = false
-    new_alter_mouseleft = false
     while true do
-        for key, cd in pairs(key_cd_map) do
-            if cd ~= -1 and not (key == "mouseleft" and alter_mouseleft) then
-                cd_click(key, cd)
-            end
-        end
-        Sleep(100)
+        avoid_map = {
+            ["mouseleft"] = not running,
+        }
+        click_key_cd_map(key_cd_map, avoid_map)
+        Sleep(50)
         if is_off("scrolllock", callback_set_off_map(key_cd_map)) then
             break
         end
-        caps_on = is_on("capslock")
-        if caps_on ~= running then
-            running = caps_on
-            if running then
-                for key, cd in pairs(key_cd_map) do
-                    if cd == -1 then
-                        set_on(key)
-                    end
-                end
-            else
-                for key, cd in pairs(key_cd_map) do
-                    if cd == -1 then
-                        set_off(key)
-                    end
-                end
-            end
-        end
-        new_alter_mouseleft = (mouseleft_alternate ~= nil and running and is_on("mouseleft") and is_off("ctrl"))
-        if alter_mouseleft ~= new_alter_mouseleft then
-            alter_mouseleft = new_alter_mouseleft
-            if alter_mouseleft then
-                set_on(mouseleft_alternate)
-            else
-                set_off(mouseleft_alternate)
-            end
+        running = edge_trigger(
+            running,
+            not (is_on("ctrl") or is_on("alt")),
+            callback_set_on_map(key_cd_map),
+            callback_set_off_map(key_cd_map)
+        )
+        if mouseleft_alternate ~= nil then
+            alter_mouseleft = edge_trigger(
+                alter_mouseleft,
+                running and is_on("mouseleft"),
+                callback_set_on(mouseleft_alternate),
+                callback_set_off(mouseleft_alternate)
+            )
         end
     end
-    set_off("capslock")
     if mouseleft_alternate ~= nil then
         set_off(mouseleft_alternate)
     end

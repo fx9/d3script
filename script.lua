@@ -236,12 +236,13 @@ function edge_trigger(old_val, new_val, up_func, down_func)
 end
 
 function switch_operations(key_cd_map, mouseleft_alternate)
+	set_off("capslock")
     set_on_map(key_cd_map)
     running = true
     alter_mouseleft = false
     while true do
         avoid_map = {
-            ["mouseleft"] = not running,
+            ["mouseleft"] = alter_mouseleft,
         }
         click_key_cd_map(key_cd_map, avoid_map)
         Sleep(50)
@@ -250,7 +251,7 @@ function switch_operations(key_cd_map, mouseleft_alternate)
         end
         running = edge_trigger(
             running,
-            not (is_on("ctrl") or is_on("alt")),
+            not (is_on("ctrl") or is_on("alt") or is_on("capslock")),
             callback_set_on_map(key_cd_map),
             callback_set_off_map(key_cd_map)
         )
@@ -266,6 +267,7 @@ function switch_operations(key_cd_map, mouseleft_alternate)
     if mouseleft_alternate ~= nil then
         set_off(mouseleft_alternate)
     end
+	set_off("capslock")
 end
 
 function simple_major_attack()
@@ -381,12 +383,9 @@ end
 
 function switch_cru_hammer()
     switch_operations({
-        ["lshift"] = -1,
         ["1"] = -1,
-        ["2"] = 6000,
-        ["3"] = 5000,
+        ["3"] = 500,
         ["4"] = 500,
-        ["mouseleft"] = 7000,
     }, "spacebar")
 end
 
@@ -402,11 +401,9 @@ end
 
 function switch_dh_multishoot()
     switch_operations({
-        ["lshift"] = -1,
         ["1"] = -1,
-        ["3"] = 500,
+        ["3"] = 3000,
         ["4"] = 500,
-        ["mouseleft"] = 3000,
     }, "spacebar")
 end
 
@@ -428,6 +425,22 @@ function switch_dh_grenade()
     }, "spacebar")
 end
 
+function switch_wiz()
+    switch_operations({
+        ["1"] = -1,
+        ["2"] = 4500,
+        ["3"] = 60000,
+        ["4"] = 70000,
+    }, "spacebar")
+end
+
+function switch_temp()
+    switch_operations({
+        ["1"] = -1,
+        ["lshift"] = -1,
+    }, "spacebar")
+end
+
 last_release_switch=-1
 
 function OnEvent(event, arg)
@@ -441,14 +454,16 @@ function OnEvent(event, arg)
         -- switch_dh_multishoot()
         -- switch_dh_grenade()
         -- switch_wiz_archon()
-        switch_cru_hammer()
+        switch_wiz()
+        -- switch_cru_hammer()
+        -- switch_temp()
     end 
 
     if (event == "MOUSE_BUTTON_RELEASED" and arg == 8) then
         last_release_switch=GetRunningTime()
     end 
 
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 11) then
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 10) then
         simple_major_attack()
     end 
 

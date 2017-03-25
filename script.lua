@@ -235,14 +235,15 @@ function edge_trigger(old_val, new_val, up_func, down_func)
     return new_val
 end
 
-function switch_operations(key_cd_map, mouseleft_alternate)
-	set_off("capslock")
+function switch_operations(key_cd_map, replace_key)
+    set_off("capslock")
     set_on_map(key_cd_map)
     running = true
-    alter_mouseleft = false
+    do_replace = false
+    enable_replace = replace_key ~= nil and key_cd_map["mouseleft"] ~= -1
     while true do
         avoid_map = {
-            ["mouseleft"] = alter_mouseleft,
+            ["mouseleft"] = do_replace,
         }
         click_key_cd_map(key_cd_map, avoid_map)
         Sleep(50)
@@ -255,19 +256,19 @@ function switch_operations(key_cd_map, mouseleft_alternate)
             callback_set_on_map(key_cd_map),
             callback_set_off_map(key_cd_map)
         )
-        if mouseleft_alternate ~= nil then
-            alter_mouseleft = edge_trigger(
-                alter_mouseleft,
+        if enable_replace then
+            do_replace = edge_trigger(
+                do_replace,
                 running and is_on("mouseleft"),
-                callback_set_on(mouseleft_alternate),
-                callback_set_off(mouseleft_alternate)
+                callback_set_on(replace_key),
+                callback_set_off(replace_key)
             )
         end
     end
-    if mouseleft_alternate ~= nil then
-        set_off(mouseleft_alternate)
+    if enable_replace then
+        set_off(replace_key)
     end
-	set_off("capslock")
+    set_off("capslock")
 end
 
 function simple_major_attack()

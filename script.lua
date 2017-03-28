@@ -19,12 +19,21 @@ modifier_check_table={
     ["mouseleft"] = function() return IsMouseButtonPressed(1) end,
     ["mousemid"] = function() return IsMouseButtonPressed(2) end,
     ["mouseright"] = function() return IsMouseButtonPressed(3) end,
+    ["mouse4"] = function() return IsMouseButtonPressed(4) end,
+    ["mouse5"] = function() return IsMouseButtonPressed(5) end,
 }
 
 mouse_map={
     ["mouseleft"] = 1,
     ["mousemid"] = 2,
     ["mouseright"] = 3,
+    ["mouse4"] = 4,
+    ["mouse5"] = 5,
+}
+
+mouse_wheels={
+    ["mousewheelup"] = 1,
+    ["mousewheeldown"] = -1,
 }
 
 lock_keys={
@@ -53,10 +62,10 @@ end
 
 function release_list(keys)
     for i, key in ipairs(keys) do
-        if mouse_map[key] == nil then
-            ReleaseKey(key)
-        else
+        if mouse_map[key] ~= nil then
             ReleaseMouseButton(mouse_map[key])
+        elseif mouse_wheels[key] == nil then
+            ReleaseKey(key)
         end
     end
 end
@@ -74,20 +83,24 @@ end
 
 function press(...)
     for i, key in ipairs(arg) do
-        if mouse_map[key] == nil then
-            PressKey(key)
-        else
+        if mouse_map[key] ~= nil then
             PressMouseButton(mouse_map[key])
+        elseif mouse_wheels[key] ~= nil then
+            MoveMouseWheel(mouse_wheels[key])
+        else
+            PressKey(key)
         end
     end
 end
 
 function click(...)
     for i, key in ipairs(arg) do
-        if mouse_map[key] == nil then
-            PressAndReleaseKey(key)
-        else
+        if mouse_map[key] ~= nil then
             PressAndReleaseMouseButton(mouse_map[key])
+        elseif mouse_wheels[key] ~= nil then
+            MoveMouseWheel(mouse_wheels[key])
+        else
+            PressAndReleaseKey(key)
         end
     end
 end
@@ -183,8 +196,28 @@ function last_key_time(key_code)
 end
 
 function cd_click(key_code, cd)
+    if mouse_wheels[key_code] ~= nil then
+        return cd_click_mouse_wheel(key_code, cd)
+    end
     curr_time = GetRunningTime()
     if curr_time - last_key_time(key_code) >= cd then
+        click(key_code)
+        key_times[key_code] = GetRunningTime()
+        return true
+    else
+        return false
+    end
+end
+
+MIN_MOUSEWHEEL_INTERVAL=100
+function cd_click_mouse_wheel(key_code, cd)
+    curr_time = GetRunningTime()
+    if curr_time - last_key_time(key_code) >= cd then
+        for mouse_wheel_code, value in pairs(mouse_wheels) do
+            if curr_time - last_key_time(mouse_wheel_code) < MIN_MOUSEWHEEL_INTERVAL then
+                return false
+            end
+        end
         click(key_code)
         key_times[key_code] = GetRunningTime()
         return true
@@ -435,11 +468,45 @@ function switch_wiz()
     }, "spacebar")
 end
 
-function switch_temp()
+-- 此处是scrolllock控制的脚本
+-- 用--关掉不需要的按键
+-- 其他按键 = 号后的数字表示按键间隔的毫秒数，500 即 0.5 秒
+-- 用 -1 表示此键一直按住
+-- mouseleft表示鼠标左键
+-- mouseright表示鼠标右键
+-- 这个脚本表示 一直按住1，每0.5秒按一次34
+function example()
     switch_operations({
         ["1"] = -1,
-        ["lshift"] = -1,
+        -- ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
+        -- ["mouseleft"] = -1,
+        -- ["mouseright"] = 500,
+    
+    -- 此处spacebar表示将空格当作强制移动键
     }, "spacebar")
+end
+
+-- 用两个函数给不同的按键触发，可以令不同按键启动不同的脚本配置
+function example2()
+    switch_operations({
+        -- 增加了鼠标45号键以及鼠标滚轮的支持，注意滚轮无法按住
+        ["mouse4"] = -1,
+        ["mouse5"] = 500,
+        ["mousewheeldown"] = 500,
+        ["mousewheelup"] = 500,
+    }, "spacebar")
+end
+
+function example3()
+    switch_operations({
+        ["1"] = -1, 
+        ["2"] = 4500,
+        ["3"] = 60000,
+        ["4"] = 70000,
+    -- 像这样把第二个参数去掉可以禁用强制移动
+    })
 end
 
 last_release_switch=-1
@@ -447,21 +514,31 @@ last_release_switch=-1
 function OnEvent(event, arg)
     OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 8) then
-        if GetRunningTime()-last_release_switch <= 5 then
-            return
+    -- 此处 arg == 8 将 8 替换为你刚才分配了 scrolllock 键的按键编号
+    if (arg == 8) then
+        if (event == "MOUSE_BUTTON_PRESSED") then
+            if GetRunningTime()-last_release_switch <= 5 then
+                return
+            end
+            example()
         end
-        -- switch_dh_cluster()
-        -- switch_dh_multishoot()
-        -- switch_dh_grenade()
-        -- switch_wiz_archon()
-        switch_wiz()
-        -- switch_cru_hammer()
-        -- switch_temp()
+        if (event == "MOUSE_BUTTON_RELEASED") then
+            last_release_switch=GetRunningTime()
+        end 
     end 
-
-    if (event == "MOUSE_BUTTON_RELEASED" and arg == 8) then
-        last_release_switch=GetRunningTime()
+    
+    -- 此处 arg == 9 将 9 替换为另一个分配了 scrolllock 键的按键编号
+    if (arg == 9) then
+        if (event == "MOUSE_BUTTON_PRESSED") then
+            if GetRunningTime()-last_release_switch <= 5 then
+                return
+            end
+            -- 此处调用你定义的其他函数
+            example2()
+        end
+        if (event == "MOUSE_BUTTON_RELEASED") then
+            last_release_switch=GetRunningTime()
+        end 
     end 
 
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 10) then

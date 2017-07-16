@@ -455,11 +455,15 @@ end
 
 function switch_dh_knife()
     cd_click("2", 60000)
-    switch_operations({
+    switch_operations3({
         ["1"] = -1,
         ["3"] = 500,
         ["4"] = 500,
-    }, "backslash")
+    },nil,
+    {"backslash", {}},
+    nil,
+    {["mouseleft"] = 250}
+    )
 end
 
 
@@ -473,7 +477,7 @@ function switch_cru_hammer()
 end
 
 function switch_cru_spike()
-    switch_operations({
+    switch_operations3({
         ["lshift"] = -1,
         ["mouseright"] = 1300,
         ["q"] = 8000,
@@ -481,7 +485,12 @@ function switch_cru_spike()
         ["2"] = 16000,
         ["3"] = 16000,
         ["4"] = 16000,
-    }, "backslash")
+    },
+    nil,
+    {"backslash", {}},
+    nil,
+    {["mouseleft"] = 250}
+    )
 end
 
 
@@ -496,15 +505,6 @@ function switch_monk()
     nil,
     {["mouseleft"] = 250}
     )
-end
-
-function switch_monk3()
-    switch_operations3({
-        ["4"] = 5000,
-        ["3"] = 300,
-    },{
-        ["click-press"] = 250,
-    })
 end
 
 function switch_wiz()
@@ -581,11 +581,11 @@ function OnEvent(event, arg)
     switch_funcs={
         --[8] = switch_temp,
         --[8] = switch_cru_hammer,
-        --[8] = switch_cru_spike,
-        --[8] = switch_monk3,
-        [8] = switch_wiz,
+        [8] = switch_cru_spike,
+        --[8] = switch_monk,
+        --[8] = switch_wiz,
         --[8] = switch_nec3,
-        --[8] = switch_dh_knife2,
+        --[8] = switch_dh_knife,
         --[8] = switch_dh_multishoot,
         [9] = switch_dh_knife2,
     }

@@ -1,6 +1,7 @@
 function print(name, value)
     OutputLogMessage("%s = %s\n", tostring(name), tostring(value))
 end
+
 ---- click utilities ----
 
 modifier_check_table={
@@ -161,6 +162,14 @@ function callback_set_on(...)
     return callback
 end
 
+function callback_set_on_delay(key, delay)
+    function callback()
+        Sleep(delay)
+        set_on(key)
+    end
+    return callback
+end
+
 function callback_set_on_map(key_cd_map)
     function callback()
         set_on_map(key_cd_map)
@@ -203,6 +212,28 @@ function cd_click(key_code, cd)
     if curr_time - last_key_time(key_code) >= cd then
         click(key_code)
         key_times[key_code] = GetRunningTime()
+        return true
+    else
+        return false
+    end
+end
+
+function cd_macro(macro, cd)
+    curr_time = GetRunningTime()
+    if curr_time - last_key_time(macro) >= cd then
+        PlayMacro(macro)
+        key_times[macro] = GetRunningTime()
+        return true
+    else
+        return false
+    end
+end
+
+function cd_func(name, func, cd)
+    curr_time = GetRunningTime()
+    if curr_time - last_key_time(name) >= cd then
+        func()
+        key_times[name] = GetRunningTime()
         return true
     else
         return false
@@ -268,17 +299,73 @@ function edge_trigger(old_val, new_val, up_func, down_func)
     return new_val
 end
 
-function switch_operations(key_cd_map, replace_key)
+function switch_operations(key_cd_map, replace_key, macro_cd_map)
+    switch_operations3(key_cd_map, macro_cd_map, {replace_key, {}})
+end
+
+function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigger, key_cd_map_when_paused)
     set_off("capslock")
     set_on_map(key_cd_map)
     running = true
-    do_replace = false
-    enable_replace = replace_key ~= nil and key_cd_map["mouseleft"] ~= -1
+    enable_left_trigger = left_trigger ~= nil and key_cd_map["mouseleft"] ~= -1
+    if left_trigger == nil then
+        left_trigger={nil,{}}
+    end
+    left_triggering = false
+    left_replace = left_trigger[1]
+    left_avoid_keys = left_trigger[2]
+    left_press_func = left_trigger[3]
+    if left_press_func == nil then
+        left_press_func = callback_set_on(left_replace)
+    end
+    left_release_func = left_trigger[4]
+    if left_release_func == nil then
+        left_release_func = callback_set_off(left_replace)
+    end
+    enable_right_trigger = right_trigger ~= nil and key_cd_map["mouseright"] ~= -1
+    if right_trigger == nil then
+        right_trigger={nil,{}}
+    end
+    right_triggering = false
+    right_replace = right_trigger[1]
+    right_avoid_keys = right_trigger[2]
+    right_press_func = right_trigger[3]
+    if right_press_func == nil then
+        right_press_func = callback_set_on(right_replace)
+    end
+    right_release_func = right_trigger[4]
+    if right_release_func == nil then
+        right_release_func = callback_set_off(right_replace)
+    end
+    
+    avoid_map = {}
+    extra_avoid_map = {}
+    for i, extra_avoid_key in pairs(left_avoid_keys) do
+        extra_avoid_map[extra_avoid_key] = false
+    end
+    for i, extra_avoid_key in pairs(right_avoid_keys) do
+        extra_avoid_map[extra_avoid_key] = false
+    end
+    
+        
     while true do
-        avoid_map = {
-            ["mouseleft"] = do_replace,
-        }
+        avoid_map["mouseleft"]=left_triggering
+        avoid_map["mouseright"]=right_triggering
+        for extra_avoid_key, v in pairs(extra_avoid_map) do
+            avoid_map[extra_avoid_key] = false
+        end
+        for i, extra_avoid_key in pairs(left_avoid_keys) do
+            avoid_map[extra_avoid_key] = avoid_map[extra_avoid_key] or avoid_map["mouseleft"]
+        end
+        for i, extra_avoid_key in pairs(right_avoid_keys) do
+            avoid_map[extra_avoid_key] = avoid_map[extra_avoid_key] or avoid_map["mouseright"]
+        end
         click_key_cd_map(key_cd_map, avoid_map)
+        if macro_cd_map ~= nil then
+            for macro, cd in pairs(macro_cd_map) do
+                cd_macro(macro, cd)
+            end
+        end
         Sleep(50)
         if is_off("scrolllock", callback_set_off_map(key_cd_map)) then
             break
@@ -289,215 +376,81 @@ function switch_operations(key_cd_map, replace_key)
             callback_set_on_map(key_cd_map),
             callback_set_off_map(key_cd_map)
         )
-        if enable_replace then
-            do_replace = edge_trigger(
-                do_replace,
+        if not running and key_cd_map_when_paused ~= nil then
+            click_key_cd_map(key_cd_map_when_paused)
+        end
+        if enable_left_trigger then
+            left_triggering = edge_trigger(
+                left_triggering,
                 running and is_on("mouseleft"),
-                callback_set_on(replace_key),
-                callback_set_off(replace_key)
+                left_press_func,
+                left_release_func
+            )
+        end
+        if enable_right_trigger then
+            right_triggering = edge_trigger(
+                right_triggering,
+                running and is_on("mouseright"),
+                right_press_func,
+                right_release_func
             )
         end
     end
-    if enable_replace then
-        set_off(replace_key)
+    if enable_left_trigger then
+        left_release_func()
     end
+    if enable_right_trigger then
+        right_release_func()
+    end
+    set_off_map(key_cd_map)
     set_off("capslock")
 end
 
-function simple_major_attack()
-    loop_operations({
-        ["mouseleft"] = -1,
-    })
-end
-
-function click_mapping(modifier_to_check, key_to_click)
-    if is_on(modifier_to_check) then
-        click(key_to_click)
-        set_off(modifier_to_check)
-        return true
-    end
-    return false
-end
-
-function negative_click_mapping(modifier_to_check, key_to_click)
-    if is_off(modifier_to_check) then
-        click(key_to_click)
-        set_on(modifier_to_check)
-        return true
-    end
-    return false
-end
-
--- 此处是scrolllock控制的脚本
--- 用--关掉不需要的按键
--- 其他按键 = 号后的数字表示按键间隔的毫秒数，500 即 0.5 秒
--- 用 -1 表示此键一直按住
--- mouseleft表示鼠标左键
--- mouseright表示鼠标右键
--- 这个脚本表示 一直按住1，每0.5秒按一次34
-function example()
-    switch_operations({
-        ["1"] = -1,
-        -- ["2"] = 500,
-        ["3"] = 500,
-        ["4"] = 500,
-        -- ["mouseleft"] = -1,
-        -- ["mouseright"] = 500,
-    
-    -- 此处spacebar表示将空格当作强制移动键
-    }, "spacebar")
-end
-
--- 用两个函数给不同的按键触发，可以令不同按键启动不同的脚本配置
-function example2()
-    switch_operations({
-        -- 增加了鼠标45号键以及鼠标滚轮的支持，注意滚轮无法按住
-        ["mouse4"] = -1,
-        ["mouse5"] = 500,
-        ["mousewheeldown"] = 500,
-        ["mousewheelup"] = 500,
-    }, "spacebar")
-end
-
-function example3()
-    switch_operations({
-        ["1"] = -1, 
-        ["2"] = 4500,
-        ["3"] = 60000,
-        ["4"] = 70000,
-    -- 像这样把第二个参数去掉可以禁用强制移动
-    })
-end
-
-function cast_wiz_archon()
-    release("lshift")
-    press("lshift")
-    click("mouseleft")
-    release("lshift")
+function multishoot_mouseright_pressed()
     Sleep(100)
-    curr_time = GetRunningTime()
-    end_time = curr_time + 20000
-    next_time = curr_time + 31900
-    click("1")
-    Sleep(100)
-    press("mouseright")
-    init_time = curr_time + 500
-    init_done = false
-    warn_time = end_time - 1500
-    warned = false
-    while curr_time < end_time do
-        if not warned and curr_time >= warn_time then
-            click("0")
-            warned = true
-        end
-        if not init_done and curr_time >= init_time then
-            click("2")
-            init_done = true
-        end
-        Sleep(50)
-        if is_off("capslock", callback_set_off("mouseright")) then
-            return false
-        end
-        if is_off("scrolllock") then
-            break
-        end
-        negative_click_mapping("mouseright", "3")
-        curr_time = GetRunningTime()
-    end
-    set_off("mouseright")
-    set_off("scrolllock")
-    return wait_wiz_archon(next_time)
-end
-   
-
-function wait_wiz_archon(end_time)
-    alter_mouseleft = false
-    new_alter_mouseleft = false
-    mouseleft_alternate = "spacebar"
-    set_on("2")
-    while GetRunningTime() < end_time or is_on("ctrl") do
-        Sleep(50)
-        if is_off("capslock", callback_set_off("2", mouseleft_alternate)) then
-            return false
-        end
-        if is_on("scrolllock", callback_set_off("2", mouseleft_alternate)) then
-            return true
-        end
-        new_alter_mouseleft = (mouseleft_alternate ~= nil and running and is_on("mouseleft") and is_off("ctrl"))
-        if alter_mouseleft ~= new_alter_mouseleft then
-            alter_mouseleft = new_alter_mouseleft
-            if alter_mouseleft then
-                set_on(mouseleft_alternate)
-            else
-                set_off(mouseleft_alternate)
-            end
-        end
-    end
-    set_off("2")
-    set_on("scrolllock")
-    return true
-end
-    
-   
-function switch_wiz_archon()
-    click("3", "4")
-    set_on("capslock")
-    Sleep(200)
-    set_off("scrolllock")
-    Sleep(200)
-    curr_time = GetRunningTime()
-    if not wait_wiz_archon(curr_time+100000) then
-        return
-    end
-    while cast_wiz_archon() do
-        OutputLogMessage("time = %d\n", GetRunningTime())
-    end
-    set_off("scrolllock")
-    set_off("capslock")
+    release("1")
+    PlayMacro("macro4sleep2500")
 end
 
-function switch_cru_hammer()
-    switch_operations({
-        ["1"] = -1,
-        ["3"] = 500,
-        ["4"] = 500,
-    }, "spacebar")
-end
-
-function loop_monk()
-    loop_operations({
-        ["mouseleft"] = -1,
-        ["2"] = 500,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseright"] = 500,
-    })
+function multishoot_mouseright_released()
+    AbortMacro()
+    press("1")
 end
 
 function switch_dh_multishoot()
-    switch_operations({
+    switch_operations3({
         ["1"] = -1,
-        ["3"] = 3000,
-        ["4"] = 500,
-    }, "spacebar")
+        ["2"] = 500,
+        ["3"] = 4000,
+    },
+    nil,
+    {"backslash", {"3"}},
+    {nil, {"3"}, multishoot_mouseright_pressed, multishoot_mouseright_released},
+    {["mouseleft"] = 250}
+    )
 end
 
-function switch_dh_cluster()
-    switch_operations({
-        ["1"] = -1,
-        ["2"] = 8000,
-        ["3"] = 500,
-        ["4"] = 500,
-        ["mouseleft"] = 3000,
-    }, "spacebar")
+function knife_mouseright_pressed()
+    release("1")
+    PlayMacro("macro1sleep2000")
 end
 
-function switch_dh_grenade()
-    switch_operations({
+function knife_mouseright_released()
+    AbortMacro()
+    press("1")
+end
+
+function switch_dh_knife2()
+    cd_click("2", 60000)
+    switch_operations3({
         ["1"] = -1,
         ["3"] = 500,
         ["4"] = 500,
-    }, "spacebar")
+    },nil,
+    {"backslash", {}},
+    {nil, {}, knife_mouseright_pressed, knife_mouseright_released},
+    {["mouseleft"] = 250}
+    )
 end
 
 function switch_dh_knife()
@@ -506,36 +459,118 @@ function switch_dh_knife()
         ["1"] = -1,
         ["3"] = 500,
         ["4"] = 500,
-    }, "spacebar")
-end
-
-function switch_wiz()
-    PlayMacro("shift-click")
-    switch_operations({
-        ["1"] = -1,
-        ["2"] = 4500,
-        ["3"] = 60000,
-        ["4"] = 70000,
-    }, "spacebar")
-end
-
-function switch_temp()
-    switch_operations({
-        ["1"] = -1,
-        ["2"] = 500,
-        ["3"] = 500,
-        --["4"] = 70000,
-    }, "spacebar")
+    }, "backslash")
 end
 
 
-function switch_cru_hammer2()
+function switch_cru_hammer()
     switch_operations({
         ["1"] = -1,
         ["2"] = 500,
         ["3"] = 500,
         ["4"] = 500,
-    }, "spacebar")
+    }, "backslash")
+end
+
+function switch_cru_spike()
+    switch_operations({
+        ["lshift"] = -1,
+        ["mouseright"] = 1300,
+        ["q"] = 8000,
+        ["1"] = 16000,
+        ["2"] = 16000,
+        ["3"] = 16000,
+        ["4"] = 16000,
+    }, "backslash")
+end
+
+
+function switch_monk()
+    switch_operations3({
+        ["4"] = -1,
+        ["3"] = 300,
+    },{
+        ["shift-click"] = 5000,
+    },
+    {"backslash", {"1"}},
+    nil,
+    {["mouseleft"] = 250}
+    )
+end
+
+function switch_monk3()
+    switch_operations3({
+        ["4"] = 5000,
+        ["3"] = 300,
+    },{
+        ["click-press"] = 250,
+    })
+end
+
+function switch_wiz()
+    PlayMacro("shift-click")
+    switch_operations3({
+        ["1"] = -1,
+        ["2"] = 4500,
+        ["3"] = 60000,
+        ["4"] = 70000,
+    },nil,
+    {"backslash", {"1"}},
+    nil,
+    {["mouseleft"] = 250}
+    )
+end
+
+function switch_nec()
+    switch_operations3({
+        --["mouseleft"] = 250,
+        --["1"] = -1,
+        --["2"] = 500,
+        ["3"] = 1000,
+        ["4"] = 1000,
+    },nil,
+    {"backslash", {"1","3","4"}},
+    nil,
+    {["mouseleft"] = 250}
+    )
+end
+
+function switch_nec2()
+    switch_operations3({
+        ["mouseleft"] = 250,
+        --["1"] = 2000,
+        ["2"] = 500,
+        --["3"] = 500,
+        ["4"] = 500,
+    },nil,
+    {"backslash", {"4"}},
+    nil,
+    {["mouseleft"] = 250}
+    )
+end
+
+function switch_nec3()
+    switch_operations3({
+        ["mouseleft"] = 250,
+        --["1"] = 500,
+        ["2"] = 2000,
+        ["3"] = 500,
+        ["4"] = 500,
+    },nil,
+    {"backslash", {"4"}},
+    nil,
+    {["mouseleft"] = 250}
+    )
+end
+
+function switch_temp()
+    switch_operations3({
+        ["1"] = -1,
+        --["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 30000,
+    },nil,
+    {"backslash", {"1"}})
 end
 
 last_release_switch=-1
@@ -543,35 +578,28 @@ last_release_switch=-1
 function OnEvent(event, arg)
     OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
-    -- 此处 arg == 8 将 8 替换为你刚才分配了 scrolllock 键的按键编号
-    if (arg == 8) then
-        if (event == "MOUSE_BUTTON_PRESSED") then
-            if GetRunningTime()-last_release_switch <= 5 then
-                return
-            end
-            example()
-        end
-        if (event == "MOUSE_BUTTON_RELEASED") then
-            last_release_switch=GetRunningTime()
-        end 
-    end 
-    
-    -- 此处 arg == 9 将 9 替换为另一个分配了 scrolllock 键的按键编号
-    if (arg == 9) then
-        if (event == "MOUSE_BUTTON_PRESSED") then
-            if GetRunningTime()-last_release_switch <= 5 then
-                return
-            end
-            -- 此处调用你定义的其他函数
-            example2()
-        end
-        if (event == "MOUSE_BUTTON_RELEASED") then
-            last_release_switch=GetRunningTime()
-        end 
-    end 
+    switch_funcs={
+        --[8] = switch_temp,
+        --[8] = switch_cru_hammer,
+        --[8] = switch_cru_spike,
+        --[8] = switch_monk3,
+        [8] = switch_wiz,
+        --[8] = switch_nec3,
+        --[8] = switch_dh_knife2,
+        --[8] = switch_dh_multishoot,
+        [9] = switch_dh_knife2,
+    }
 
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 10) then
-        simple_major_attack()
+    if (switch_funcs[arg] ~= nil) then
+        if (event == "MOUSE_BUTTON_PRESSED") then
+            if GetRunningTime()-last_release_switch <= 5 then
+                return
+            end
+            switch_funcs[arg]()
+        end
+        if (event == "MOUSE_BUTTON_RELEASED") then
+            last_release_switch=GetRunningTime()
+        end 
     end 
 
 end

@@ -367,8 +367,4 @@ function OnEvent(event, arg)
         end 
     end 
 	
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 10) then
-        simple_major_attack()
-    end 
-
 end

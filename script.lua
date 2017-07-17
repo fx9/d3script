@@ -303,7 +303,7 @@ function switch_operations(key_cd_map, replace_key, macro_cd_map)
     switch_operations3(key_cd_map, macro_cd_map, {replace_key, {}})
 end
 
-function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigger, key_cd_map_when_paused)
+function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigger, key_cd_map_when_paused, mouseleft_autoclick_interval)
     set_off("capslock")
     set_on_map(key_cd_map)
     running = true
@@ -322,6 +322,23 @@ function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigge
     if left_release_func == nil then
         left_release_func = callback_set_off(left_replace)
     end
+	
+	mouseleft_autoclick_enabled = left_replace ~= nil
+	if mouseleft_autoclick_enabled and mouseleft_autoclick_interval == nil then
+		mouseleft_autoclick_interval = 250
+	end
+	
+	function release_then_press_mouseleft()
+		release(left_replace)
+		release("mouseleft")
+		press("mouseleft")
+		press(left_replace)
+	end
+
+	function cd_release_then_press_mouseleft()
+		cd_func("release_then_press_mouseleft", release_then_press_mouseleft, mouseleft_autoclick_interval)
+	end
+	
     enable_right_trigger = right_trigger ~= nil and key_cd_map["mouseright"] ~= -1
     if right_trigger == nil then
         right_trigger={nil,{}}
@@ -386,6 +403,9 @@ function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigge
                 left_press_func,
                 left_release_func
             )
+        end
+        if running and left_triggering and mouseleft_autoclick_enabled then
+            cd_release_then_press_mouseleft()
         end
         if enable_right_trigger then
             right_triggering = edge_trigger(
@@ -581,11 +601,11 @@ function OnEvent(event, arg)
     switch_funcs={
         --[8] = switch_temp,
         --[8] = switch_cru_hammer,
-        [8] = switch_cru_spike,
+        --[8] = switch_cru_spike,
         --[8] = switch_monk,
         --[8] = switch_wiz,
         --[8] = switch_nec3,
-        --[8] = switch_dh_knife,
+        [8] = switch_dh_knife2,
         --[8] = switch_dh_multishoot,
         [9] = switch_dh_knife2,
     }

@@ -307,7 +307,7 @@ function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigge
     set_off("capslock")
     set_on_map(key_cd_map)
     running = true
-    enable_left_trigger = left_trigger ~= nil and key_cd_map["mouseleft"] ~= -1
+    enable_left_trigger = left_trigger ~= nil
     if left_trigger == nil then
         left_trigger={nil,{}}
     end
@@ -325,14 +325,22 @@ function switch_operations3(key_cd_map, macro_cd_map, left_trigger, right_trigge
 	
 	mouseleft_autoclick_enabled = left_replace ~= nil
 	if mouseleft_autoclick_enabled and mouseleft_autoclick_interval == nil then
-		mouseleft_autoclick_interval = 250
+		mouseleft_autoclick_interval = 200
 	end
 	
 	function release_then_press_mouseleft()
+         lshift_on=false
+         if is_on("lshift") then
+             lshift_on=true
+             release("lshift")
+         end
 		release(left_replace)
 		release("mouseleft")
-		press("mouseleft")
 		press(left_replace)
+         if lshift_on then
+             press("lshift")
+         end
+		press("mouseleft")
 	end
 
 	function cd_release_then_press_mouseleft()
@@ -499,6 +507,7 @@ end
 function switch_cru_spike()
     switch_operations3({
         ["lshift"] = -1,
+        ["mouseleft"] = -1,
         ["mouseright"] = 1300,
         ["q"] = 8000,
         ["1"] = 16000,
@@ -559,7 +568,7 @@ function switch_nec2()
     switch_operations3({
         ["mouseleft"] = 250,
         --["1"] = 2000,
-        ["2"] = 500,
+        --["2"] = 500,
         --["3"] = 500,
         ["4"] = 500,
     },nil,
@@ -586,11 +595,13 @@ end
 function switch_temp()
     switch_operations3({
         ["1"] = -1,
-        --["2"] = 500,
         ["3"] = 500,
-        ["4"] = 30000,
+        ["4"] = 500,
     },nil,
-    {"backslash", {"1"}})
+    {"backslash", {"1"}},
+    nil,
+    {["mouseleft"] = 250}
+    )
 end
 
 last_release_switch=-1
@@ -604,7 +615,7 @@ function OnEvent(event, arg)
         --[8] = switch_cru_spike,
         --[8] = switch_monk,
         --[8] = switch_wiz,
-        --[8] = switch_nec3,
+        --[8] = switch_nec2,
         [8] = switch_dh_knife2,
         --[8] = switch_dh_multishoot,
         [9] = switch_dh_knife2,

@@ -528,7 +528,6 @@ function switch_dh_knife2()
 end
 
 function cru_new_mouseleft_pressed()
-    print("press")
     press("backslash")
     PlayMacro("macro1sleep900")
 end
@@ -541,7 +540,6 @@ end
 function cru_new_mouseleft_released()
     AbortMacro()
     release("backslash")
-    print("release")
 end
 
 function cru_new_mouseright_pressed()

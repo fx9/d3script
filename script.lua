@@ -304,12 +304,33 @@ function add_event(event)
     end
 end
 
+function clear_events()
+    SCHEDULED_EVENTS={}
+    NEW_SCHEDULED_EVENTS={}
+end
+
+function closure(func, ...)
+    return function()
+        func(unpack(arg))
+    end
+end
+
+function settimeout(func_wrap, cd)
+    local curr_time
+    curr_time = GetRunningTime()
+    add_event({func_wrap, curr_time + cd})
+end
+
 function schedule_loop_func(func, cd, ...)
     local func_args=arg
     local function loop_func()
-        curr_time = GetRunningTime()
-        func(unpack(func_args))
-        add_event({loop_func, curr_time + cd})
+        local ret_val
+        ret_val = func(unpack(func_args))
+        if ret_val == false then -- ret_val == nil is OK
+            add_event({loop_func, 0})
+        else
+            settimeout(loop_func, cd)
+        end
     end
     add_event({loop_func, 0})
 end
@@ -340,23 +361,14 @@ end
 
 function click_avoid(key_or_func)
     if GLOBAL_AVOID_MAP[key_or_func] then
-        return
+        return false
     end
     if type(key_or_func) == "string" then
         click(key_or_func)
     else
         key_or_func()
     end
-end
-
-function register_key_cd_map(key_cd_map)
-    for key_or_func, cd in pairs(key_cd_map) do
-        if type(key_or_func) == "string" then
-            schedule_loop_func(click_avoid, cd, key_or_func)
-        else
-            schedule_loop_func(key_or_func, cd)
-        end
-    end
+    return true
 end
 
 function click_key_cd_map(key_cd_map, avoid_map)
@@ -399,20 +411,24 @@ function trigger_functions_from_args(trigger_args, triggering_key)
     end
     table.insert(avoid_keys, triggering_key)
     
-    if internal_press_func == nil then
-        internal_press_func = callback_set_on(key_replace)
-    end
     local function press_func()
         globally_avoid(unpack(avoid_keys))
-        internal_press_func()
+        if key_replace ~= nil then
+            set_on(key_replace)
+        end
+        if internal_press_func ~= nil then
+            internal_press_func()
+        end
     end
     
-    if internal_release_func == nil then
-        internal_release_func = callback_set_off(key_replace)
-    end
     local function release_func()
+        if internal_release_func ~= nil then
+            internal_release_func()
+        end
+        if key_replace ~= nil then
+            set_off(key_replace)
+        end
         globally_unavoid(unpack(avoid_keys))
-        internal_release_func()
     end
     
     return press_func, release_func
@@ -467,9 +483,8 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
         press("mouseleft")
     end
         
-        
-    register_key_cd_map(key_cd_map)
     while true do
+        click_key_cd_map(key_cd_map)
         exec_events()
         Sleep(50)
         if is_off("scrolllock", callback_set_off_map(key_cd_map)) then
@@ -528,34 +543,37 @@ function switch_dh_knife2()
 end
 
 function cru_new_mouseleft_pressed()
-    press("backslash")
     PlayMacro("macro1sleep900")
 end
 
-function cru_new2_mouseleft_pressed()
-    press("backslash")
-    PlayMacro("macro1sleep1200")
-end
-
 function cru_new_mouseleft_released()
-    AbortMacro()
-    release("backslash")
-end
-
-function cru_new_mouseright_pressed()
     AbortMacro()
 end
 
 function switch_cru_new()
     switch_operations4({
-        --["1"] = 600,
-        --["2"] = 2000,
-        --["3"] = 500,
-        --["4"] = 500,
-        --["mouseright"] = 500,
+        ["1"] = 600,
+        ["2"] = 2000,
+        ["3"] = 500,
+        ["4"] = 500,
+        ["mouseright"] = 500,
     },
     {"backslash", {"mouseright", "1"}, cru_new_mouseleft_pressed, cru_new_mouseleft_released}
     )
+end
+
+
+function cru_new2_mouseleft_pressed()
+    schedule_loop_func(click, 900, "1")
+end
+
+function cru_new2_mouseleft_released()
+    clear_events()
+end
+
+function cru_new2_mouseright_pressed()
+    clear_events()
+    settimeout(cru_new2_mouseleft_pressed, 3000)
 end
 
 
@@ -566,8 +584,8 @@ function switch_cru_new2()
         ["3"] = 500,
         ["4"] = 500,
     },
-    {"backslash", {"1", "2", "3"}, cru_new2_mouseleft_pressed, cru_new_mouseleft_released},
-    {nil, {}, cru_new_mouseright_pressed, nil}
+    {"backslash", {"1", "2", "3"}, cru_new2_mouseleft_pressed, cru_new2_mouseleft_released},
+    {nil, {}, cru_new2_mouseright_pressed, nil}
     )
 end
 
@@ -586,7 +604,7 @@ function OnEvent(event, arg)
     SCHEDULED_EVENTS={}
     local funcs={
         --[8] = switch_temp,
-        [8] = switch_cru_new,
+        [8] = switch_cru_new2,
         --[8] = switch_dh_knife2
         [9] = switch_dh_knife2,
     }

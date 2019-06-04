@@ -6,8 +6,9 @@ function func_selector()
 --switch_temp()
 --switch_cru_condemn()
 --switch_cru_hammer()
-switch_dh_knife2()
+--switch_dh_knife2()
 --switch_dh_multishoot2()
+switch_dh_knife3()
 --switch_dh_rapidshot()
 --switch_nec_bloodnova()
 --switch_znec()
@@ -594,6 +595,27 @@ function switch_dh_knife2()
     ["1"] = -1,
     ["3"] = 500,
     ["4"] = 500,
+  },
+  {"backslash", {}},
+  {nil, {}, knife_mouseright_pressed, knife_mouseright_released}
+  )
+end
+
+
+function knife3_click4()
+  if is_on("mouseright") or is_on("mouseleft")then
+    return false -- so that the engine knows it's not clicked
+  end
+  click("4")
+  return true
+end
+
+function switch_dh_knife3()
+  cd_click("2", 60000)
+  schedule_loop_func("click4", knife3_click4, 4500)
+  switch_operations4({
+    ["1"] = -1,
+    ["3"] = 500,
   },
   {"backslash", {}},
   {nil, {}, knife_mouseright_pressed, knife_mouseright_released}

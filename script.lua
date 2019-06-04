@@ -2,6 +2,29 @@ function print(name, value)
     OutputLogMessage("%s = %s\n", tostring(name), tostring(value))
 end
 
+function func_selector()
+--switch_temp()
+--switch_cru_new()
+--switch_cru_hammer()
+switch_dh_knife2()
+--switch_dh_multishoot2()
+--switch_dh_rapidshot()
+--switch_nec_bloodnova()
+--switch_znec()
+end
+
+function switch_temp()
+    switch_operations4({
+        --["lshift"] = -1,
+        ["1"] = -1,
+        ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
+    },
+    {"backslash", {"2","3","4"}}
+    )
+end
+
 ---- click utilities ----
 
 modifier_check_table={
@@ -520,13 +543,25 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
     set_off("capslock")
 end
 
-function knife_mouseright_pressed()
+
+---- Functions for D3 Builds ----
+
+knife_press_1_delay=360
+function knife_press_1()
+    press("1")
+    settimeout(knife_release_1, knife_press_1_delay)
+end
+function knife_release_1()
     release("1")
-    PlayMacro("macro1sleep2000")
+    settimeout(knife_press_1, 1950 - knife_press_1_delay)
+end
+function knife_mouseright_pressed()
+    settimeout(knife_press_1, 1950)
+    release("1")
 end
 
 function knife_mouseright_released()
-    AbortMacro()
+    clear_events()
     press("1")
 end
 
@@ -542,12 +577,48 @@ function switch_dh_knife2()
     )
 end
 
+function multishoot_mouseright_pressed()
+    release("2")
+    press("1")
+    Sleep(400)
+    release("1")
+    settimeout(knife_press_1, 1950)
+end
+
+function multishoot_mouseright_released()
+    clear_events()
+    release("1")
+    press("2")
+end
+
+function switch_dh_multishoot2()
+    switch_operations4({
+        ["2"] = -1,
+        ["3"] = 4000,
+        ["4"] = 500,
+    },
+    {"backslash", {"3"}},
+    {nil, {}, multishoot_mouseright_pressed, multishoot_mouseright_released}
+    )
+end
+
+function switch_dh_rapidshot()
+    switch_operations4({
+        ["1"] = -1,
+        ["2"] = 500,
+        ["3"] = 500,
+        ["4"] = 500,
+    },
+    {"backslash", {"3"}}
+    )
+end
+
 function cru_new_mouseleft_pressed()
-    PlayMacro("macro1sleep900")
+    schedule_loop_func(click, 900, "1")
 end
 
 function cru_new_mouseleft_released()
-    AbortMacro()
+    clear_events()
 end
 
 function switch_cru_new()
@@ -562,38 +633,37 @@ function switch_cru_new()
     )
 end
 
-
-function cru_new2_mouseleft_pressed()
-    schedule_loop_func(click, 900, "1")
-end
-
-function cru_new2_mouseleft_released()
-    clear_events()
-end
-
-function cru_new2_mouseright_pressed()
-    clear_events()
-    settimeout(cru_new2_mouseleft_pressed, 3000)
-end
-
-
-function switch_cru_new2()
+function switch_cru_hammer()
     switch_operations4({
-        ["1"] = 600,
-        ["2"] = 5000,
+        ["1"] = -1,
+        ["2"] = 500,
         ["3"] = 500,
         ["4"] = 500,
     },
-    {"backslash", {"1", "2", "3"}, cru_new2_mouseleft_pressed, cru_new2_mouseleft_released},
-    {nil, {}, cru_new2_mouseright_pressed, nil}
+    {"backslash", {"2", "3"}}
     )
 end
 
-function switch_temp()
+function switch_nec_bloodnova()
     switch_operations4({
-        ["1"] = 1000,
-        ["2"] = 1000,
-    }
+        ["1"] = -1,
+        ["2"] = 500,
+        ["3"] = 5000,
+        ["4"] = 500,
+    },
+    {"backslash", {"3", "4"}}
+    )
+end
+
+function switch_znec()
+    switch_operations4({
+        --["lshift"] = -1,
+        ["1"] = -1,
+        ["2"] = 500,
+        --["3"] = 250,
+        ["4"] = 200,
+    },
+    {"backslash", {"4"}}
     )
 end
 last_release_switch=-1
@@ -602,13 +672,11 @@ function OnEvent(event, arg)
     OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
     SCHEDULED_EVENTS={}
-    local funcs={
-        --[8] = switch_temp,
-        [8] = switch_cru_new2,
-        --[8] = switch_dh_knife2
-        [9] = switch_dh_knife2,
-    }
 
+    local funcs={
+      [8] = func_selector,
+      [9] = switch_cru_new,
+    }
     if (funcs[arg] ~= nil) then
         if (event == "MOUSE_BUTTON_PRESSED") then
             if GetRunningTime()-last_release_switch <= 5 then

@@ -4,7 +4,7 @@ end
 
 function func_selector()
 --switch_temp()
---switch_cru_new()
+--switch_cru_condemn()
 --switch_cru_hammer()
 switch_dh_knife2()
 --switch_dh_multishoot2()
@@ -299,7 +299,7 @@ end
 EXECUTING_EVENTS=false
 SCHEDULED_EVENTS={}
 NEW_SCHEDULED_EVENTS={}
--- event={func_wrap, scheduled_time}
+-- event={name, func_wrap, scheduled_time}
 function exec_events()
   EXECUTING_EVENTS=true
   NEW_SCHEDULED_EVENTS={}
@@ -308,7 +308,7 @@ function exec_events()
   local func_wrap
   local scheduled_time
   for i, event in ipairs(SCHEDULED_EVENTS) do
-    func_wrap, scheduled_time = unpack(event)
+    name, func_wrap, scheduled_time = unpack(event)
     if curr_time >= scheduled_time then
       func_wrap()
     else
@@ -316,6 +316,7 @@ function exec_events()
     end
   end
   SCHEDULED_EVENTS=NEW_SCHEDULED_EVENTS
+  NEW_SCHEDULED_EVENTS={}
   EXECUTING_EVENTS=false
 end
 
@@ -332,9 +333,25 @@ function clear_all_events()
   NEW_SCHEDULED_EVENTS={}
 end
 
-function clear_events(name)
-  SCHEDULED_EVENTS={}
-  NEW_SCHEDULED_EVENTS={}
+function clear_events(clear_name)
+  local temp_events
+  temp_events = {}
+  for i, event in ipairs(SCHEDULED_EVENTS) do
+    name, func_wrap, scheduled_time = unpack(event)
+    if name ~= clear_name then
+      table.insert(temp_events, event)
+    end
+  end
+  SCHEDULED_EVENTS = temp_events
+  
+  temp_events = {}
+  for i, event in ipairs(NEW_SCHEDULED_EVENTS) do
+    name, func_wrap, scheduled_time = unpack(event)
+    if name ~= clear_name then
+      table.insert(temp_events, event)
+    end
+  end
+  NEW_SCHEDULED_EVENTS = temp_events
 end
 
 function closure(func, ...)
@@ -343,24 +360,26 @@ function closure(func, ...)
   end
 end
 
-function settimeout(func_wrap, cd)
+function settimeout(name, func_wrap, cd)
   local curr_time
   curr_time = GetRunningTime()
-  add_event({func_wrap, curr_time + cd})
+  add_event({name, func_wrap, curr_time + cd})
 end
 
-function schedule_loop_func(func, cd, ...)
+function schedule_loop_func(name, func, cd, ...)
   local func_args=arg
   local function loop_func()
     local ret_val
+    local my_cd
     ret_val = func(unpack(func_args))
     if ret_val == false then -- ret_val == nil is OK
-      add_event({loop_func, 0})
+      my_cd = 0
     else
-      settimeout(loop_func, cd)
+      my_cd = cd
     end
+    settimeout(name, loop_func, my_cd)
   end
-  add_event({loop_func, 0})
+  settimeout(name, loop_func, 0)
 end
 
 
@@ -465,7 +484,6 @@ end
 
 function switch_operations4(key_cd_map, left_trigger, right_trigger)
   local mouseleft_autoclick_interval = 200
-  set_off("capslock")
   set_on_map(key_cd_map)
   
   local enable_left_trigger
@@ -544,8 +562,8 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
   if enable_right_trigger then
     right_release_func()
   end
+  clear_all_events()
   set_off_map(key_cd_map)
-  set_off("capslock")
 end
 
 
@@ -554,19 +572,19 @@ end
 knife_press_1_delay=360
 function knife_press_1()
   press("1")
-  settimeout(knife_release_1, knife_press_1_delay)
+  settimeout("mouseright", knife_release_1, knife_press_1_delay)
 end
 function knife_release_1()
   release("1")
-  settimeout(knife_press_1, 1950 - knife_press_1_delay)
+  settimeout("mouseright", knife_press_1, 1950 - knife_press_1_delay)
 end
 function knife_mouseright_pressed()
-  settimeout(knife_press_1, 1950)
+  settimeout("mouseright", knife_press_1, 1950)
   release("1")
 end
 
 function knife_mouseright_released()
-  clear_events()
+  clear_events("mouseright")
   press("1")
 end
 
@@ -587,11 +605,11 @@ function multishoot_mouseright_pressed()
   press("1")
   Sleep(400)
   release("1")
-  settimeout(knife_press_1, 1950)
+  settimeout("mouseright", knife_press_1, 1950)
 end
 
 function multishoot_mouseright_released()
-  clear_events()
+  clear_events("mouseright")
   release("1")
   press("2")
 end
@@ -618,15 +636,15 @@ function switch_dh_rapidshot()
   )
 end
 
-function cru_new_mouseleft_pressed()
-  schedule_loop_func(click, 900, "1")
+function cru_condemn_mouseleft_pressed()
+  schedule_loop_func("mouseleft", click, 900, "1")
 end
 
-function cru_new_mouseleft_released()
-  clear_events()
+function cru_condemn_mouseleft_released()
+  clear_events("mouseleft")
 end
 
-function switch_cru_new()
+function switch_cru_condemn()
   switch_operations4({
     ["1"] = 600,
     ["2"] = 2000,
@@ -634,7 +652,7 @@ function switch_cru_new()
     ["4"] = 500,
     ["mouseright"] = 500,
   },
-  {"backslash", {"mouseright", "1"}, cru_new_mouseleft_pressed, cru_new_mouseleft_released}
+  {"backslash", {"mouseright", "1"}, cru_condemn_mouseleft_pressed, cru_condemn_mouseleft_released}
   )
 end
 
@@ -680,7 +698,6 @@ function OnEvent(event, arg)
 
   local funcs={
     [8] = func_selector,
-    [9] = switch_cru_new,
   }
   if (funcs[arg] ~= nil) then
     if (event == "MOUSE_BUTTON_PRESSED") then

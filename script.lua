@@ -230,14 +230,45 @@ function last_key_time(key_code)
 end
 
 function cd_click(key_code, cd)
+  -- align:
+  -- 0, nil: unaligned
+  -- >0: align to the next point
+  -- <0: align to the previous point
   if mouse_wheels[key_code] ~= nil then
     return cd_click_mouse_wheel(key_code, cd)
   end
+  
+  local align
+  if type(cd) == "table" then
+    align = cd[2]
+    cd = cd[1]
+  else
+    align = 0
+  end
+  
   local curr_time
+  local prev_time
+  local time_diff
+  local click_time
   curr_time = GetRunningTime()
-  if curr_time - last_key_time(key_code) >= cd then
+  prev_time = last_key_time(key_code)
+  if prev_time < 0 then
+    prev_time = curr_time - cd
+  end
+  time_diff = curr_time - last_key_time(key_code)
+  if time_diff >= cd then
     click(key_code)
-    key_times[key_code] = GetRunningTime()
+    if align == 0 or align == nil then
+      click_time = curr_time
+    elseif align > 0 then
+      click_time = curr_time - time_diff % align
+      if click_time < curr_time then
+        click_time = click_time + align
+      end
+    else
+      click_time = curr_time - time_diff % (-align)
+    end
+    key_times[key_code] = click_time
     return true
   else
     return false
@@ -622,6 +653,18 @@ function switch_dh_knife3()
   )
 end
 
+
+function switch_dh_multishoot()
+  switch_operations4({
+    ["1"] = -1,
+    ["3"] = 4000,
+    ["4"] = 500,
+  },
+  {"backslash", {"3", "4"}},
+  {nil, {"3"}}
+  )
+end
+
 function multishoot_mouseright_pressed()
   release("2")
   press("1")
@@ -669,13 +712,15 @@ end
 function switch_cru_condemn()
   switch_operations4({
     ["1"] = 600,
-    ["2"] = 2000,
+    ["2"] = 1000,
     ["3"] = 500,
-    ["4"] = 500,
-    ["mouseright"] = 500,
+    ["4"] = {500, -50},
+    ["mouseright"] = -1,
   },
+  --{"backslash", {"mouseright"}}
   {"backslash", {"mouseright", "1"}, cru_condemn_mouseleft_pressed, cru_condemn_mouseleft_released}
-  )
+ 
+ )
 end
 
 function switch_cru_hammer()
@@ -685,7 +730,7 @@ function switch_cru_hammer()
     ["3"] = 500,
     ["4"] = 500,
   },
-  {"backslash", {"2", "3"}}
+  {"backslash", {"2", "3", "4"}}
   )
 end
 

@@ -5,24 +5,23 @@ end
 function func_selector()
 --switch_temp()
 --switch_cru_condemn()
---switch_cru_hammer()
+--switch_wiz_blast()
+--switch_monk_tempest()
 --switch_dh_knife2()
---switch_dh_multishoot2()
-switch_dh_knife3()
---switch_dh_rapidshot()
+switch_dh_strafe()
+--switch_dh_multishoot()
 --switch_nec_bloodnova()
---switch_znec()
 end
 
 function switch_temp()
   switch_operations4({
-    --["lshift"] = -1,
     ["1"] = -1,
-    ["2"] = 500,
+    --["2"] = 500,
     ["3"] = 500,
-    ["4"] = 500,
+    ["4"] = 2000,
   },
-  {"backslash", {"2","3","4"}}
+  {"backslash", {"2", "3", "4"}}
+--  {nil, {"3"}}
   )
 end
 
@@ -561,7 +560,8 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
     end
     press("mouseleft")
   end
-    
+
+  
   
   local right_replace
   local mouseright_autoclick_enabled
@@ -586,7 +586,7 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
     end
     press("mouseright")
   end
-    
+
   while true do
     click_key_cd_map(key_cd_map)
     exec_events()
@@ -654,31 +654,22 @@ function switch_dh_knife2()
   switch_operations4({
     ["1"] = -1,
     ["3"] = 500,
-    ["4"] = 500,
+    ["4"] = {500, -500},
   },
   {"backslash", {}},
   {nil, {}, knife_mouseright_pressed, knife_mouseright_released}
   )
 end
 
-
-function knife3_click4()
-  if is_on("mouseright") or is_on("mouseleft")then
-    return false -- so that the engine knows it's not clicked
-  end
-  click("4")
-  return true
-end
-
-function switch_dh_knife3()
-  cd_click("2", 60000)
-  schedule_loop_func("click4", knife3_click4, 4500)
+function switch_dh_strafe()
   switch_operations4({
     ["1"] = -1,
-    ["3"] = 500,
+    ["2"] = 500,
+    ["3"] = 1000,
+    ["4"] = {500, -500},
+    ["mouseright"] = 500,
   },
-  {"backslash", {}},
-  {nil, {}, knife_mouseright_pressed, knife_mouseright_released}
+  {"backslash", {"3"}}
   )
 end
 
@@ -687,48 +678,13 @@ function switch_dh_multishoot()
   switch_operations4({
     ["1"] = -1,
     ["3"] = 4000,
-    ["4"] = 500,
+    ["4"] = {500, -500},
   },
   {"backslash", {"3", "4"}},
   {nil, {"3"}}
   )
 end
 
-function multishoot_mouseright_pressed()
-  release("2")
-  press("1")
-  Sleep(400)
-  release("1")
-  settimeout("mouseright", knife_press_1, 1950)
-end
-
-function multishoot_mouseright_released()
-  clear_events("mouseright")
-  release("1")
-  press("2")
-end
-
-function switch_dh_multishoot2()
-  switch_operations4({
-    ["2"] = -1,
-    ["3"] = 4000,
-    ["4"] = 500,
-  },
-  {"backslash", {"3"}},
-  {nil, {}, multishoot_mouseright_pressed, multishoot_mouseright_released}
-  )
-end
-
-function switch_dh_rapidshot()
-  switch_operations4({
-    ["1"] = -1,
-    ["2"] = 500,
-    ["3"] = 500,
-    ["4"] = 500,
-  },
-  {"backslash", {"3"}}
-  )
-end
 
 function cru_condemn_mouseleft_pressed()
   schedule_loop_func("mouseleft", click, 900, "1")
@@ -743,7 +699,7 @@ function switch_cru_condemn()
     ["1"] = 600,
     ["2"] = 1000,
     ["3"] = 500,
-    ["4"] = {500, -50},
+    ["4"] = {500, -500},
     ["mouseright"] = -1,
   },
   --{"backslash", {"mouseright"}}
@@ -752,21 +708,10 @@ function switch_cru_condemn()
  )
 end
 
-function switch_cru_hammer()
-  switch_operations4({
-    ["1"] = -1,
-    ["2"] = 500,
-    ["3"] = 500,
-    ["4"] = 500,
-  },
-  {"backslash", {"2", "3", "4"}}
-  )
-end
-
 function switch_nec_bloodnova()
   switch_operations4({
     ["1"] = -1,
-    ["2"] = 500,
+    --["2"] = 500,
     ["3"] = 5000,
     ["4"] = 500,
   },
@@ -774,19 +719,40 @@ function switch_nec_bloodnova()
   )
 end
 
-function switch_znec()
+
+function switch_wiz_blast()
+  cd_click("3", 90000)
+  cd_click("4", 90000)
   switch_operations4({
-    --["lshift"] = -1,
     ["1"] = -1,
-    ["2"] = 500,
-    --["3"] = 250,
-    ["4"] = 200,
+    ["2"] = 200,
   },
-  {"backslash", {"4"}}
+  {"backslash", {}}
   )
 end
-last_release_switch=-1
 
+function monk_tempest_mouseright_pressed()
+  
+end
+function release_and_press_1()
+  release("1")
+  press("1")
+end
+function monk_tempest_mouseright_released()
+  settimeout("", release_and_press_1, 50)
+end
+function switch_monk_tempest()
+  cd_click("3", 30000)
+  switch_operations4({
+    ["1"] = -1,
+    ["4"] = 5000,
+  },
+  {"backslash", {}},
+  {nil, {}, monk_tempest_mouseright_pressed, monk_tempest_mouseright_released}
+  )
+end
+
+last_release_switch=-1
 function OnEvent(event, arg)
   OutputLogMessage("event = %s, arg = %s\n", event, arg)
 
@@ -794,6 +760,7 @@ function OnEvent(event, arg)
 
   local funcs={
     [8] = func_selector,
+    [6] = func_selector,
   }
   if (funcs[arg] ~= nil) then
     if (event == "MOUSE_BUTTON_PRESSED") then

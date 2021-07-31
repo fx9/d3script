@@ -516,6 +516,7 @@ end
 
 function switch_operations4(key_cd_map, left_trigger, right_trigger)
   local mouseleft_autoclick_interval = 200
+  local mouseright_autoclick_interval = 200
   set_on_map(key_cd_map)
   
   local enable_left_trigger
@@ -561,6 +562,31 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
     press("mouseleft")
   end
     
+  
+  local right_replace
+  local mouseright_autoclick_enabled
+  
+  if right_trigger == nil then
+    right_trigger={}
+  end
+  right_replace = right_trigger[1]
+  mouseright_autoclick_enabled = right_replace ~= nil
+  
+  local function release_then_press_mouseright()
+    local lshift_on=false
+    if is_on("lshift") then
+      lshift_on=true
+      release("lshift")
+    end
+    release(right_replace)
+    release("mouseright")
+    press(right_replace)
+    if lshift_on then
+      press("lshift")
+    end
+    press("mouseright")
+  end
+    
   while true do
     click_key_cd_map(key_cd_map)
     exec_events()
@@ -586,6 +612,9 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
         right_press_func,
         right_release_func
       )
+    end
+    if right_triggering and mouseright_autoclick_enabled then
+      cd_func("release_then_press_mouseright", release_then_press_mouseright, mouseright_autoclick_interval)
     end
   end
   if enable_left_trigger then

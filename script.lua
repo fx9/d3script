@@ -8,7 +8,8 @@ function func_selector()
 --switch_wiz_blast()
 --switch_monk_tempest()
 --switch_dh_knife2()
-switch_dh_strafe()
+--switch_dh_strafe()
+switch_dh_strafe_entangle()
 --switch_dh_multishoot()
 --switch_nec_bloodnova()
 end
@@ -118,14 +119,19 @@ function press(...)
 end
 
 function click(...)
-  for i, key in ipairs(arg) do
-    if mouse_map[key] ~= nil then
-      PressAndReleaseMouseButton(mouse_map[key])
-    elseif mouse_wheels[key] ~= nil then
-      MoveMouseWheel(mouse_wheels[key])
+  for i, key_or_func in ipairs(arg) do
+    if type(key_or_func) == "string" then
+      key = key_or_func
+      if mouse_map[key] ~= nil then
+        PressAndReleaseMouseButton(mouse_map[key])
+      elseif mouse_wheels[key] ~= nil then
+        MoveMouseWheel(mouse_wheels[key])
+      else
+        PressAndReleaseKey(key)
+      end
     else
-      PressAndReleaseKey(key)
-    end
+      key_or_func()
+    end    
   end
 end
 
@@ -441,11 +447,7 @@ function click_avoid(key_or_func)
   if GLOBAL_AVOID_MAP[key_or_func] then
     return false
   end
-  if type(key_or_func) == "string" then
-    click(key_or_func)
-  else
-    key_or_func()
-  end
+  click(key_or_func)
   return true
 end
 
@@ -662,6 +664,29 @@ function switch_dh_knife2()
 end
 
 function switch_dh_strafe()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 500,
+    ["3"] = 1000,
+    ["4"] = {500, -500},
+    ["mouseright"] = 500,
+  },
+  {"backslash", {"3"}}
+  )
+end
+
+
+click_keys_in_order_i=0
+function click_keys_in_order(keys)
+  click_keys_in_order_i = click_keys_in_order_i + 1
+  click_avoid(keys[click_keys_in_order_i])
+  click_keys_in_order_i = click_keys_in_order_i % table.getn(keys)
+end
+
+
+
+function switch_dh_strafe_entangle()
+
   switch_operations4({
     ["1"] = -1,
     ["2"] = 500,

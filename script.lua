@@ -5,11 +5,13 @@ end
 function func_selector()
 --switch_temp()
 --switch_cru_condemn()
+switch_cru_bombardment()
 --switch_wiz_blast()
 --switch_monk_tempest()
 --switch_dh_knife2()
 --switch_dh_strafe()
-switch_dh_strafe_entangle()
+--switch_dh_strafe_entangle()
+--switch_dh_strafe_support()
 --switch_dh_multishoot()
 --switch_nec_bloodnova()
 end
@@ -126,6 +128,8 @@ function click(...)
         PressAndReleaseMouseButton(mouse_map[key])
       elseif mouse_wheels[key] ~= nil then
         MoveMouseWheel(mouse_wheels[key])
+      elseif key == "" then
+        -- do nothing
       else
         PressAndReleaseKey(key)
       end
@@ -562,8 +566,7 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
     end
     press("mouseleft")
   end
-
-  
+  key_times["release_then_press_mouseleft"] = GetRunningTime()
   
   local right_replace
   local mouseright_autoclick_enabled
@@ -588,6 +591,7 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
     end
     press("mouseright")
   end
+  key_times["release_then_press_mouseright"] = GetRunningTime()
 
   while true do
     click_key_cd_map(key_cd_map)
@@ -675,6 +679,17 @@ function switch_dh_strafe()
   )
 end
 
+function switch_dh_strafe_support()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 500,
+    ["3"] = 1000,
+    ["4"] = {500, -500},
+    ["mouseright"] = 3000,
+  },
+  {"backslash", {"3"}}
+  )
+end
 
 click_keys_in_order_i=0
 function click_keys_in_order(keys)
@@ -686,15 +701,15 @@ end
 
 
 function switch_dh_strafe_entangle()
-
+  local_func=closure(click_keys_in_order, {"2","","3","",""})
   switch_operations4({
     ["1"] = -1,
-    ["2"] = 500,
-    ["3"] = 1000,
+    --["2"] = 500,
+    [local_func] = 500,
     ["4"] = {500, -500},
     ["mouseright"] = 500,
   },
-  {"backslash", {"3"}}
+  {"backslash", {local_func}}
   )
 end
 
@@ -731,6 +746,18 @@ function switch_cru_condemn()
   {"backslash", {"mouseright", "1"}, cru_condemn_mouseleft_pressed, cru_condemn_mouseleft_released}
  
  )
+end
+
+function switch_cru_bombardment()
+  switch_operations4({
+    ["1"] = 500,
+    ["2"] = 500,
+    ["3"] = 500,
+    ["4"] = {500, -500},
+    --["mouseright"] = 500,
+  },
+  {"backslash", {"1","2","3","4"}}
+  )
 end
 
 function switch_nec_bloodnova()
@@ -780,6 +807,7 @@ end
 last_release_switch=-1
 function OnEvent(event, arg)
   OutputLogMessage("event = %s, arg = %s\n", event, arg)
+  --OutputLogMessage("time = %s event = %s, arg = %s\n", GetRunningTime(), event, arg)
 
   SCHEDULED_EVENTS={}
 

@@ -3,28 +3,40 @@ function print(name, value)
 end
 
 function func_selector()
+  --mouse_move = is_on("capslock")
 --switch_temp()
 --switch_cru_condemn()
-switch_cru_bombardment()
+--switch_cru_bombardment()
+--switch_cru_bombardment_tp()
+--switch_cru_foth()
+--switch_cru_foth2()
 --switch_wiz_blast()
 --switch_monk_tempest()
+--switch_monk_water()
+--switch_monk_fire()
+--switch_monk_tempest_fire()
 --switch_dh_knife2()
---switch_dh_strafe()
+--switch_dh_knife_season27()
+--switch_dh_knife_season27_2()
+--switch_dh_strafe3()
+switch_dh_strafe2()
 --switch_dh_strafe_entangle()
 --switch_dh_strafe_support()
 --switch_dh_multishoot()
 --switch_nec_bloodnova()
+  mouse_move = false
 end
+
 
 function switch_temp()
   switch_operations4({
     ["1"] = -1,
-    --["2"] = 500,
-    ["3"] = 500,
-    ["4"] = 2000,
+    ["2"] = {5000, -500},
+    ["3"] = 3000,
+    ["4"] = 500,
   },
-  {"backslash", {"2", "3", "4"}}
---  {nil, {"3"}}
+  {"backslash", {"1"}},
+  {nil, {}}
   )
 end
 
@@ -277,6 +289,9 @@ function cd_click(key_code, cd)
     else
       click_time = curr_time - time_diff % (-align)
     end
+    if key_code == "mouseright" then
+     print(time_diff)
+    end
     key_times[key_code] = click_time
     return true
   else
@@ -518,7 +533,7 @@ function trigger_functions_from_args(trigger_args, triggering_key)
   return press_func, release_func
 end
 
-
+mouse_move=false
 function switch_operations4(key_cd_map, left_trigger, right_trigger)
   local mouseleft_autoclick_interval = 200
   local mouseright_autoclick_interval = 200
@@ -596,7 +611,19 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
   while true do
     click_key_cd_map(key_cd_map)
     exec_events()
-    Sleep(50)
+    Sleep(1)
+    if mouse_move then
+      x, y = GetMousePosition()
+      xx = x - 32768
+      yy = y - 30000
+      d = math.sqrt(xx*xx + yy*yy)
+      if d > 4096 then
+         x = 32768 + xx*4096/d
+         y = 30000 + yy*4096/d
+         MoveMouseToVirtual(x, y)
+      end
+    end
+
     if is_off("scrolllock", callback_set_off_map(key_cd_map)) then
       break
     end
@@ -634,6 +661,72 @@ function switch_operations4(key_cd_map, left_trigger, right_trigger)
 end
 
 
+click_keys_in_order_i=0
+function click_keys_in_order(keys)
+  click_keys_in_order_i = click_keys_in_order_i + 1
+  click_avoid(keys[click_keys_in_order_i])
+  click_keys_in_order_i = click_keys_in_order_i % table.getn(keys)
+end
+
+ --[[
+ // this doesn't work because one cycle is not exact 50ms
+ 
+function flatten_keys_with_delay(keys_with_delay, interval)
+  local result = {}
+  local delay = 0
+  for i, key_delay in ipairs(keys_with_delay) do
+    table.insert(result, key_delay[1])
+	delay = key_delay[2] - interval
+    while(delay > 0)
+    do
+      table.insert(result, "")
+	  delay = delay - interval
+    end
+  end
+  return result
+end
+
+function click_keys_sequence_func(keys_with_delay)
+  click_keys_in_order_i=0
+  return closure(click_keys_in_order, flatten_keys_with_delay(keys_with_delay, 50))
+end
+
+--]]
+
+
+
+click_by_offset_start_time=-999999
+click_by_offset_i=0
+function click_by_offset(key_offset_list, total_time)
+  local curr_time = GetRunningTime()
+  local curr_offset = curr_time - click_by_offset_start_time
+  if click_by_offset_i == 0 then
+	if curr_offset >= total_time then
+	  click_by_offset_start_time = curr_time
+	else
+	  return
+	end
+  end
+  local i = click_by_offset_i + 1
+  local key = key_offset_list[i][1]
+  local offset = key_offset_list[i][2]
+  if curr_offset >= offset then
+    click_avoid(key)
+	if offset == 0 then
+	  click_by_offset_start_time = GetRunningTime()
+	end
+    click_by_offset_i = i % table.getn(key_offset_list)
+  end
+end
+
+function click_by_offset_func(key_offset_list, total_time)
+  click_by_offset_start_time=-999999
+  click_by_offset_i=0
+  return closure(click_by_offset, key_offset_list, total_time)
+end
+
+
+
 ---- Functions for D3 Builds ----
 
 knife_press_1_delay=360
@@ -667,16 +760,141 @@ function switch_dh_knife2()
   )
 end
 
-function switch_dh_strafe()
+function switch_dh_knife_season27()
+  cd_click("2", 60000)
+  click("mouseright")
+  Sleep(200)
   switch_operations4({
     ["1"] = -1,
-    ["2"] = 500,
+    ["3"] = {500, -500},
+    ["4"] = {500, -500},
+  },
+  {"backslash", {}}
+  )
+end
+
+function knife_season27_2_use_knife()
+  press("lshift")
+  Sleep(200)
+  click("mouseleft")
+  Sleep(300)
+  release("lshift")
+end
+function switch_dh_knife_season27_2()
+--[[
+  click_keys_in_order_i = 0
+  local local_func=closure(click_keys_in_order, {
+    "3","mouseright","mouseright","mouseright","mouseright",
+    "mouseright","mouseright","mouseright","mouseright","mouseright",
+    "mouseright","mouseright","mouseright","mouseright","mouseright",
+    "mouseright","mouseright","mouseright","mouseright","mouseright",
+  })
+--]]
+  local local_func=closure(click_keys_in_order, {"","","","0","mouseright"})
+  cd_click("2", 60000)
+  cd_func("knife_season27_2_use_knife", knife_season27_2_use_knife, 0)
+  --click("3")
+  --Sleep(200)
+  click("mouseright")
+  Sleep(200)
+  switch_operations4({
+    --["t"] = 150,
+    --[local_func] = 150,
+    ["1"] = -1,
+    ["3"] = {500, -500},
+    ["4"] = {500, -500},
+    --["mouseright"] = 3500,
+    [local_func] = 800,
+  },
+  {"backslash", {"mouseright"}}
+  )
+end
+
+      
+function switch_dh_strafe3()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 4500,
     ["3"] = 1000,
     ["4"] = {500, -500},
     ["mouseright"] = 500,
   },
   {"backslash", {"3"}}
   )
+end
+
+function switch_dh_strafe()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 4500,
+    ["3"] = 1000,
+    ["4"] = {500, -500},
+    ["mouseright"] = 500,
+  },
+  {"backslash", {"3"}}
+  )
+end
+
+dh_strafe_start_time=0
+dh_strafe_curr_time=0
+dh_strafe_pressed=""
+dh_strafe_1_time=340
+dh_strafe_1_extended_time=2300
+dh_strafe_3_time=200
+function dh_strafe2_press3()
+  release("1")
+  dh_strafe_pressed = "3"
+  dh_strafe_start_time = GetRunningTime()
+  press("3")
+end
+function dh_strafe2_press1()
+  release("3")
+  dh_strafe_pressed = "1"
+  dh_strafe_start_time = GetRunningTime()
+  press("1")
+end
+
+function dh_strafe2_next_op()
+  if dh_strafe_pressed == "1" then
+    dh_strafe_curr_time = GetRunningTime()
+    if is_on("capslock") then
+      time_diff = dh_strafe_1_extended_time
+    else
+      time_diff = dh_strafe_1_time
+    end
+    if dh_strafe_curr_time - dh_strafe_start_time >= time_diff then
+      dh_strafe2_press3()
+    end
+  elseif dh_strafe_pressed == "3" then
+    dh_strafe_curr_time = GetRunningTime()
+    if dh_strafe_curr_time - dh_strafe_start_time >= dh_strafe_3_time then
+      dh_strafe2_press1()
+    end
+  else
+    dh_strafe2_press3()
+  end
+end
+
+function dh_strafe2_reset()
+  dh_strafe_start_time=0
+  release("1")
+  release("3")
+  dh_strafe_pressed=""
+end
+
+function dh_strafe2_mouseleft_released()
+end
+
+function switch_dh_strafe2()
+  switch_operations4({
+    [dh_strafe2_next_op] = 1,
+    ["2"] = 4500,
+    ["4"] = {500, -500},
+    ["mouseright"] = 500,
+  },
+  {"backslash", {dh_strafe2_next_op}, dh_strafe2_reset, dh_strafe2_mouseleft_released}
+  )
+  dh_strafe2_reset()
 end
 
 function switch_dh_strafe_support()
@@ -691,17 +909,8 @@ function switch_dh_strafe_support()
   )
 end
 
-click_keys_in_order_i=0
-function click_keys_in_order(keys)
-  click_keys_in_order_i = click_keys_in_order_i + 1
-  click_avoid(keys[click_keys_in_order_i])
-  click_keys_in_order_i = click_keys_in_order_i % table.getn(keys)
-end
-
-
-
 function switch_dh_strafe_entangle()
-  local_func=closure(click_keys_in_order, {"2","","3","",""})
+  local local_func=closure(click_keys_in_order, {"2","","3","",""})
   switch_operations4({
     ["1"] = -1,
     --["2"] = 500,
@@ -717,7 +926,7 @@ end
 function switch_dh_multishoot()
   switch_operations4({
     ["1"] = -1,
-    ["3"] = 4000,
+    ["3"] = 3200,
     ["4"] = {500, -500},
   },
   {"backslash", {"3", "4"}},
@@ -725,6 +934,34 @@ function switch_dh_multishoot()
   )
 end
 
+
+function switch_cru_foth2()
+  switch_operations4({
+    ["1"] = 250,
+    ["2"] = 250,
+    ["3"] = 250,
+    ["4"] = 250,
+    ["t"] = 100,
+  },
+  {"backslash", {}}
+  )
+end
+
+function switch_cru_foth()
+  local local_func=click_by_offset_func({
+    {"4",0},
+    {"1",4700},
+    {"2",4700},
+    {"3",4700},
+  }, 5050)
+  switch_operations4({
+    ["mouseleft"] = -1,
+    --["t"] = 100,
+    [local_func] = 1,
+  },
+  {"backslash", {}}
+  )
+end
 
 function cru_condemn_mouseleft_pressed()
   schedule_loop_func("mouseleft", click, 900, "1")
@@ -748,15 +985,34 @@ function switch_cru_condemn()
  )
 end
 
+function cru_bombardment_click_3()
+  if is_on("capslock") then
+    click("3")
+  end
+end
 function switch_cru_bombardment()
   switch_operations4({
-    ["1"] = 500,
-    ["2"] = 500,
-    ["3"] = 500,
-    ["4"] = {500, -500},
+    ["1"] = {3000, -500},
+    ["2"] = {2000, -500},
+    [cru_bombardment_click_3] = 500,
+    ["4"] = {5000, -500},
     --["mouseright"] = 500,
   },
-  {"backslash", {"1","2","3","4"}}
+  {"backslash", {"1","2","4"}}
+  )
+end
+function switch_cru_bombardment_tp()
+  switch_operations4({
+    ["mouseleft"] = -1,
+    ["1"] = {3000, -500},
+    ["2"] = {2000, -500},
+    [cru_bombardment_click_3] = 500,
+    ["4"] = {5000, -500},
+    ["t"] = 200,
+    --["mouseright"] = 500,
+  },
+  {"backslash", {}},
+  {nil, {"1","2","4"}}
   )
 end
 
@@ -804,13 +1060,80 @@ function switch_monk_tempest()
   )
 end
 
+function monk_water_mouseright_pressed()
+  release("1")
+end
+function monk_water_mouseright_released()
+  settimeout("", monk_water_click_4, 50)
+end
+function monk_water_click_4()
+  click("4")
+  key_times["4"] = GetRunningTime()
+  press("1")
+end
+function switch_monk_water()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 250,
+    ["3"] = 250,
+    ["4"] = 3000,
+    --["mouseright"] = 3000,
+  },
+  {"backslash", {"4"}},
+  {nil, {},monk_water_mouseright_pressed,monk_water_mouseright_released}
+  )
+end
+
+monk_fire_click_3_delay=500
+monk_fire_click_4_delay=1000
+function monk_fire_mouseright_pressed()
+  release("1")
+  key_times[monk_fire_click_34] = GetRunningTime()+3000-monk_fire_click_34_delay
+end
+function monk_fire_mouseright_released()
+  --settimeout("", monk_fire_after_mouseright, 50)
+  key_times[monk_fire_click_34] = GetRunningTime()+300-monk_fire_click_34_delay
+  key_times["4"] = 0
+end
+function monk_fire_click_34()
+  click("3")
+  cd_click("4",monk_fire_click_4_delay)
+end
+function monk_fire_after_mouseright()
+  click("4")
+  press("1")
+end
+function switch_monk_fire()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 250,
+    [monk_fire_click_34] = monk_fire_click_3_delay,
+    --["mouseright"] = 3000,
+  },
+  {"backslash", {monk_fire_click_34}},
+  {nil, {monk_fire_click_34},monk_water_mouseright_pressed,monk_water_mouseright_released}
+  )
+end
+
+function switch_monk_tempest_fire()
+  switch_operations4({
+    ["1"] = -1,
+    --["2"] = 250,
+    ["3"] = 250,
+    ["4"] = 250,
+    ["mouseright"] = 3000,
+  },
+  {"backslash", {"mouseright"}}
+  )
+end
+
 last_release_switch=-1
 function OnEvent(event, arg)
   OutputLogMessage("event = %s, arg = %s\n", event, arg)
   --OutputLogMessage("time = %s event = %s, arg = %s\n", GetRunningTime(), event, arg)
 
   SCHEDULED_EVENTS={}
-
+  
   local funcs={
     [8] = func_selector,
     [6] = func_selector,

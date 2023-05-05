@@ -4,21 +4,24 @@ end
 
 function func_selector()
   --mouse_move = is_on("capslock")
+--switch_d4()
 --switch_temp()
 --switch_cru_condemn()
 --switch_cru_bombardment()
 --switch_cru_bombardment_tp()
 --switch_cru_foth()
 --switch_cru_foth2()
---switch_wiz_blast()
 --switch_monk_tempest()
 --switch_monk_water()
 --switch_monk_fire()
 --switch_monk_tempest_fire()
+--switch_wiz_blast()
+--switch_wiz_ice_orb()
+--switch_wiz_meteor()
 --switch_dh_knife2()
 --switch_dh_knife_season27()
 --switch_dh_knife_season27_2()
---switch_dh_strafe3()
+--switch_dh_strafe2_s28()
 switch_dh_strafe2()
 --switch_dh_strafe_entangle()
 --switch_dh_strafe_support()
@@ -28,14 +31,42 @@ switch_dh_strafe2()
 end
 
 
+function d4_left_pressed()
+  release("1")
+  
+end
+
+function d4_right_released()
+  press("1")
+end
+
+function switch_d4()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 1600,
+    ["3"] = 1000,
+    ["4"] = 1000,
+    --["q"] = 500,
+  },
+  {nil, {"2"}, d4_left_pressed, d4_right_released},
+  {nil, {}}
+  )
+end
+
+
 function switch_temp()
+  --cd_click("2", 120000)
+  --cd_click("3", 120000)
+  --cd_click("4", 120000)
   switch_operations4({
     ["1"] = -1,
     ["2"] = {5000, -500},
-    ["3"] = 3000,
+    ["3"] = 500,
     ["4"] = 500,
+    ["q"] = 500,
+    ["mouseright"] = 1450,
   },
-  {"backslash", {"1"}},
+  {"backslash", {"1","3","mouseright"}},
   {nil, {}}
   )
 end
@@ -110,18 +141,18 @@ function release_list(keys)
 end
 
 function release(...)
-  release_list({...})
+  release_list(arg)
 end
 
 function callback_release(...)
   local function callback()
-    release_list({...})
+    release_list(arg)
   end
   return callback
 end
 
 function press(...)
-  for i, key in ipairs({...}) do
+  for i, key in ipairs(arg) do
     if mouse_map[key] ~= nil then
       PressMouseButton(mouse_map[key])
     elseif mouse_wheels[key] ~= nil then
@@ -133,7 +164,7 @@ function press(...)
 end
 
 function click(...)
-  for i, key_or_func in ipairs({...}) do
+  for i, key_or_func in ipairs(arg) do
     if type(key_or_func) == "string" then
       key = key_or_func
       if mouse_map[key] ~= nil then
@@ -165,7 +196,7 @@ function set_on_list(keys)
 end
 
 function set_on(...)
-  set_on_list({...})
+  set_on_list(arg)
 end
 
 function set_off_list(keys)
@@ -181,7 +212,7 @@ function set_off_list(keys)
 end
 
 function set_off(...)
-  set_off_list({...})
+  set_off_list(arg)
 end
 
 function set_on_map(key_cd_map)
@@ -202,7 +233,7 @@ end
 
 function callback_set_on(...)
   local function callback()
-    set_on_list({...})
+    set_on_list(arg)
   end
   return callback
 end
@@ -224,7 +255,7 @@ end
 
 function callback_set_off(...)
   local function callback()
-    set_off_list({...})
+    set_off_list(arg)
   end
   return callback
 end
@@ -412,7 +443,7 @@ end
 
 function closure(func, ...)
   return function()
-    func(unpack({...}))
+    func(unpack(arg))
   end
 end
 
@@ -443,7 +474,7 @@ end
 GLOBAL_AVOID_MAP={}
 
 function globally_avoid(...)
-  for i, key_or_func in ipairs({...}) do
+  for i, key_or_func in ipairs(arg) do
     if GLOBAL_AVOID_MAP[key_or_func] == nil then
       GLOBAL_AVOID_MAP[key_or_func] = 0
     end
@@ -452,7 +483,7 @@ function globally_avoid(...)
 end
 
 function globally_unavoid(...)
-  for i, key_or_func in ipairs({...}) do
+  for i, key_or_func in ipairs(arg) do
     if GLOBAL_AVOID_MAP[key_or_func] ~= nil then
       GLOBAL_AVOID_MAP[key_or_func] = GLOBAL_AVOID_MAP[key_or_func] - 1
       if GLOBAL_AVOID_MAP[key_or_func] == 0 then
@@ -676,11 +707,11 @@ function flatten_keys_with_delay(keys_with_delay, interval)
   local delay = 0
   for i, key_delay in ipairs(keys_with_delay) do
     table.insert(result, key_delay[1])
-	delay = key_delay[2] - interval
+  delay = key_delay[2] - interval
     while(delay > 0)
     do
       table.insert(result, "")
-	  delay = delay - interval
+    delay = delay - interval
     end
   end
   return result
@@ -701,20 +732,20 @@ function click_by_offset(key_offset_list, total_time)
   local curr_time = GetRunningTime()
   local curr_offset = curr_time - click_by_offset_start_time
   if click_by_offset_i == 0 then
-	if curr_offset >= total_time then
-	  click_by_offset_start_time = curr_time
-	else
-	  return
-	end
+  if curr_offset >= total_time then
+    click_by_offset_start_time = curr_time
+  else
+    return
+  end
   end
   local i = click_by_offset_i + 1
   local key = key_offset_list[i][1]
   local offset = key_offset_list[i][2]
   if curr_offset >= offset then
     click_avoid(key)
-	if offset == 0 then
-	  click_by_offset_start_time = GetRunningTime()
-	end
+  if offset == 0 then
+    click_by_offset_start_time = GetRunningTime()
+  end
     click_by_offset_i = i % table.getn(key_offset_list)
   end
 end
@@ -810,19 +841,6 @@ function switch_dh_knife_season27_2()
   )
 end
 
-      
-function switch_dh_strafe3()
-  switch_operations4({
-    ["1"] = -1,
-    ["2"] = 4500,
-    ["3"] = 1000,
-    ["4"] = {500, -500},
-    ["mouseright"] = 500,
-  },
-  {"backslash", {"3"}}
-  )
-end
-
 function switch_dh_strafe()
   switch_operations4({
     ["1"] = -1,
@@ -839,7 +857,7 @@ dh_strafe_start_time=0
 dh_strafe_curr_time=0
 dh_strafe_pressed=""
 dh_strafe_1_time=340
-dh_strafe_1_extended_time=2300
+dh_strafe_1_extended_time=2000
 dh_strafe_3_time=200
 function dh_strafe2_press3()
   release("1")
@@ -877,9 +895,12 @@ end
 
 function dh_strafe2_reset()
   dh_strafe_start_time=0
+  shift_mouseleft_start_time=0
   release("1")
   release("3")
+  release("lshift")
   dh_strafe_pressed=""
+  shift_mouseleft_pressed=""
 end
 
 function dh_strafe2_mouseleft_released()
@@ -890,9 +911,94 @@ function switch_dh_strafe2()
     [dh_strafe2_next_op] = 1,
     ["2"] = 4500,
     ["4"] = {500, -500},
+    ["q"] = 500,
     ["mouseright"] = 500,
   },
   {"backslash", {dh_strafe2_next_op}, dh_strafe2_reset, dh_strafe2_mouseleft_released}
+  )
+  dh_strafe2_reset()
+end
+
+function dh_strafe2_mouseleft_click()
+  press("lshift")
+  Sleep(100)
+  click("mouseleft")
+  Sleep(50)
+  release("lshift")
+end
+
+function dh_strafe2_next_op_s28()
+  if dh_strafe_pressed == "1" then
+    dh_strafe_curr_time = GetRunningTime()
+    time_diff = dh_strafe_1_extended_time
+    if dh_strafe_curr_time - dh_strafe_start_time >= time_diff then
+      dh_strafe2_press3()
+    end
+  elseif dh_strafe_pressed == "3" then
+    dh_strafe_curr_time = GetRunningTime()
+    if dh_strafe_curr_time - dh_strafe_start_time >= dh_strafe_3_time then
+      dh_strafe2_press1()
+    end
+  else
+    dh_strafe2_press3()
+  end
+end
+
+shift_mouseleft_start_time=0
+shift_mouseleft_curr_time=0
+shift_mouseleft_pressed=""
+shift_mouseleft_before_click_time=50
+shift_mouseleft_after_click_time=25
+shift_mouseleft_cd_time=5000-shift_mouseleft_before_click_time-shift_mouseleft_after_click_time
+function shift_mouseleft_press_shift()
+  press("lshift")
+  shift_mouseleft_pressed = "shift"
+  shift_mouseleft_start_time = GetRunningTime()
+end
+function shift_mouseleft_click()
+  if dh_strafe_pressed == "3" then
+    return
+  end
+  click("mouseleft")
+  shift_mouseleft_pressed = "mouseleft"
+  shift_mouseleft_start_time = GetRunningTime()
+end
+function shift_mouseleft_release_shift()
+  release("lshift")
+  shift_mouseleft_pressed = "released"
+  shift_mouseleft_start_time = GetRunningTime()
+end
+function shift_mouseleft_next_op()
+  if shift_mouseleft_pressed == "shift" then
+    shift_mouseleft_curr_time = GetRunningTime()
+    if shift_mouseleft_curr_time - shift_mouseleft_start_time >= shift_mouseleft_before_click_time then
+      shift_mouseleft_click()
+    end
+  elseif shift_mouseleft_pressed == "mouseleft" then
+    shift_mouseleft_curr_time = GetRunningTime()
+    if shift_mouseleft_curr_time - shift_mouseleft_start_time >= shift_mouseleft_after_click_time then
+      shift_mouseleft_release_shift()
+    end
+  elseif shift_mouseleft_pressed == "released" then
+    shift_mouseleft_curr_time = GetRunningTime()
+    if shift_mouseleft_curr_time - shift_mouseleft_start_time >= shift_mouseleft_cd_time then
+      shift_mouseleft_press_shift()
+    end
+  else
+    shift_mouseleft_press_shift()
+  end
+end
+
+function switch_dh_strafe2_s28()
+  switch_operations4({
+    [dh_strafe2_next_op_s28] = 1,
+    [shift_mouseleft_next_op] = 1,
+    ["2"] = 4500,
+    ["4"] = {500, -500},
+    ["q"] = 500,
+    ["mouseright"] = 500,
+  },
+  {"backslash", {dh_strafe2_next_op_s28, shift_mouseleft_next_op}, dh_strafe2_reset, dh_strafe2_mouseleft_released}
   )
   dh_strafe2_reset()
 end
@@ -1124,6 +1230,54 @@ function switch_monk_tempest_fire()
     ["mouseright"] = 3000,
   },
   {"backslash", {"mouseright"}}
+  )
+end
+
+
+
+function switch_wiz_ice_orb()
+  cd_click("3", 120000)
+  cd_click("4", 120000)
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = 1000,
+    --["3"] = 3000,
+    --["4"] = 500,
+    ["q"] = 500,
+  },
+  {"backslash", {"1","2"}},
+  {nil, {}}
+  )
+end
+
+function switch_wiz_meteor()
+  cd_click("2", 120000)
+  cd_click("3", 120000)
+  cd_click("4", 120000)
+  switch_operations4({
+    ["1"] = -1,
+    --["2"] = {5000, -500},
+    --["3"] = 3000,
+    --["4"] = 500,
+    ["q"] = 500,
+  },
+  {"backslash", {"1"}},
+  {nil, {}}
+  )
+end
+
+
+function switch_dh_trap()
+  switch_operations4({
+    ["1"] = -1,
+    ["2"] = {5000, -500},
+    ["3"] = 500,
+    ["4"] = 500,
+    ["q"] = 500,
+    ["mouseright"] = 1450,
+  },
+  {"backslash", {"1","3","mouseright"}},
+  {nil, {}}
   )
 end
 

@@ -675,9 +675,16 @@ function threads_dh_strafe2()
 
   replaceML = noActionClick(interrupt,"backslash",200,{action})
   replaceML.pressFunc = release_and_press_mouseleft
+  replaceML.releaseFunc = release
   replaceML.isEnabledFunc = ModIsOn("mouseleft")
-  replaceML.onEnabledFunc = function(self) enabled = false end
-  replaceML.onDisabledFunc = function(self) enabled = true end
+  replaceML.onEnabledFunc = function(self)
+    log("replaceML enabled")
+    enabled = false
+  end
+  replaceML.onDisabledFunc = function(self)
+    log("replaceML disabled")
+    enabled = true
+  end
 
 
   press1_time=340
@@ -694,7 +701,9 @@ function threads_dh_strafe2()
   end
   press3.releaseFunc = function(key)
     release("3")
-    click("mouseleft")
+    if enabled then
+      click("mouseleft")
+    end
     release("lshift")
   end
   press3.isEnabledFunc = disabledWhenMoving

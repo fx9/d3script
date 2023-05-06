@@ -1,23 +1,35 @@
-function print(name, value)
-  if value == nil then
-    OutputLogMessage("%s\n", tostring(name))
-  else
-    OutputLogMessage("%s = %s\n", tostring(name), tostring(value))
+function print(msg, name, value)
+  if name == nil then
+    OutputLogMessage("%s\n", tostring(msg))
+    return
   end
+
+  if value == nil then
+    OutputLogMessage("%s: %s\n", tostring(msg), tostring(name))
+    return
+  end
+
+  OutputLogMessage("%s: %s = %s\n", tostring(msg), tostring(name), tostring(value))
 end
+
+function func_selector()
+  threads_dh_strafe2()
+  mouse_move = false
+end
+
 
 DEBUG = false
 LOOP_DELAY=1
-function log(name, value)
+function log(msg, name, value)
   if not DEBUG then
     return
   end
-  print(name, value)
+  print(msg, name, value)
 end
 
-function logif(condition, name, value)
+function logif(condition, msg, name, value)
   if condition then
-    log(name, value)
+    log(msg, name, value)
   end
 end
 
@@ -112,6 +124,9 @@ LOCK_KEYS={
 MODIFIER_ON_CACHE={}
 
 function isOnCached(flag)
+  if MODIFIER_ON_CACHE[flag] == nil then
+    MODIFIER_ON_CACHE[flag] = isOn(flag)
+  end
   return MODIFIER_ON_CACHE[flag]
 end
 
@@ -128,6 +143,7 @@ function isOff(flag)
 end
 
 function release(key)
+  log("release", key, RTime())
   if MOUSE_KEYS[key] ~= nil then
     ReleaseMouseButton(MOUSE_KEYS[key])
   elseif MOUSE_WHEELS[key] == nil then
@@ -136,6 +152,7 @@ function release(key)
 end
 
 function press(key)
+  log("press", key, RTime())
   if MOUSE_KEYS[key] ~= nil then
     PressMouseButton(MOUSE_KEYS[key])
   elseif MOUSE_WHEELS[key] ~= nil then
@@ -146,6 +163,7 @@ function press(key)
 end
 
 function click(target)
+  log("click", target, RTime())
   if type(target) == "string" then -- key
     local key = target
     if MOUSE_KEYS[key] ~= nil then
@@ -239,7 +257,7 @@ CdClick = {
   holdTime = 0, -- hold key for this time, and then release. if set to -1, it will attempt to hold infinitely.
 
   pressFunc = press,  -- func(key) to press
-  releaseFunc = release, -- func(key) to release
+  releaseFunc = release, -- func(key) to release. will be called on destroy/disable
 
   isEnabledFunc = nil, -- func() returns bool to determine whether it's enabled. nil to skip the whole isEnabled handling
   isEnabled = true,
@@ -347,10 +365,11 @@ end
 
 
 function CdClick:pressKey()
-  --log("pressKey", self.key)
+  -- log("pressKey", "key", self.key)
   self.pressFunc(self.key)
   self.pressTs = RTime()
-  logif(self.key == "4", "pressTs", self.pressTs)
+  -- log("pressKey", "pressTs", self.pressTs)
+  --logif(self.key == "4", "pressTs", self.pressTs)
   if not self.cycleStartsFromAcquire then
     self.startTs = alignedTs(self.startTs, self.pressTs, self.align)
   end
@@ -361,7 +380,7 @@ function CdClick:pressed()
 end
 
 function CdClick:releaseKey()
-  --log("releaseKey", self.key)
+  -- log("releaseKey", "key", self.key)
   self.releaseFunc(self.key)
   self.pressTs = -1
 end
@@ -391,10 +410,12 @@ end
 function CdClick:Init()
   self:internalInit()
   self.onEnabledClosure = function ()
+    -- logif(self.key=="backslash","enabled","time",RTime())
     self:internalInit()
     self:onEnabledFunc()
   end
   self.onDisabledClosure = function ()
+    -- logif(self.key=="backslash","disabled","time",RTime())
     self:onDisabledFunc()
     self:Destroy()
   end
@@ -455,13 +476,13 @@ function CdClick:Destroy()
   -- self.co = nil
 end
 
-function updateModCache(cachedMods)
-  for i, mod in ipairs(cachedMods) do
+function updateModCache()
+  for mod, value in pairs(MODIFIER_ON_CACHE) do
     MODIFIER_ON_CACHE[mod] = isOn(mod)
   end
 end
 
-function runPrograms(actions, noActions, actionResource, cachedMods)
+function runPrograms(actions, noActions, actionResource)
   cachedMods = cachedMods or {}
 
   for i, p in ipairs(actions) do
@@ -474,7 +495,7 @@ function runPrograms(actions, noActions, actionResource, cachedMods)
   local noActionExecuted = false
   while true do
     Sleep(LOOP_DELAY)
-    updateModCache(cachedMods)
+    updateModCache()
 
     for i, action in ipairs(actions) do
       if not noActionExecuted and actionResource:isFree() then
@@ -510,7 +531,16 @@ function holdKey(priority, key, resources)
 end
 
 function noActionClick(priority, key, cd, resources)
-  return actionClick(priority, key, cd, 0, resources)
+  return CdClick:new{
+    priority = priority,
+    key = key,
+    resources = resources,
+    cycleTime = cd,
+    holdTime = 0,
+
+    pressFunc = click, 
+    releaseFunc = doNothing,
+  }
 end
 
 function actionClick(priority, key, cd, holdTime, resources)
@@ -532,6 +562,20 @@ function modEdgeTrigger(mod, upFunc, downFunc)
 
     isEnabledFunc = ModIsOn(mod),
     isEnabled = isOff(mod), -- use flip value to ensure upFunc/downFunc called immediately
+    onEnabledFunc = upFunc,
+    onDisabledFunc = downFunc,
+  }
+end
+
+function modEdgeTriggerCached(mod, upFunc, downFunc)
+  return CdClick:new{
+    holdTime = -1,
+
+    pressFunc = doNothing,
+    releaseFunc = doNothing,
+
+    isEnabledFunc = ModIsOnCached(mod),
+    isEnabled = isOffCached(mod), -- use flip value to ensure upFunc/downFunc called immediately
     onEnabledFunc = upFunc,
     onDisabledFunc = downFunc,
   }
@@ -590,6 +634,7 @@ function release_and_press_mouseleft(replace_key)
     press("lshift")
   end
   press("mouseleft")
+  Sleep(1)
 end
 
 function test2()
@@ -614,16 +659,25 @@ function threads_dh_strafe2()
   local high = 10
   local interrupt = 100
 
+  local enabled = true
+  function disabledWhenMoving()
+    return enabled
+  end
+
   click2 = noActionClick(low,"2",4200,{action})
-  click4 = noActionClick(high,"4",500,{})
+  click4 = noActionClick(low,"4",500,{action})
   click4.align = -500
   clickMR = noActionClick(low,"mouseright",500,{action})
+  clickQ = noActionClick(low,"q",500,{action})
+  -- clickML = noActionClick(low,"mouseleft",5000,{action})
+  -- clickML.align = -500
+  -- clickML.isEnabledFunc = disabledWhenMoving
 
-  
   replaceML = noActionClick(interrupt,"backslash",200,{action})
-  replaceML.releaseFunc = doNothing
   replaceML.pressFunc = release_and_press_mouseleft
-  replaceML.isEnabledFunc = ModIsOnCached("mouseleft")
+  replaceML.isEnabledFunc = ModIsOn("mouseleft")
+  replaceML.onEnabledFunc = function(self) enabled = false end
+  replaceML.onDisabledFunc = function(self) enabled = true end
 
 
   press1_time=340
@@ -632,9 +686,19 @@ function threads_dh_strafe2()
 
   press1 = actionClick(1,"1",2500,2300,{action})
   press1.firstCycleOffset = 100
-  press1.isEnabledFunc = ModIsOffCached("mouseleft")
-  press3 = actionClick(1,"3",2500,200,{action})
-  press3.isEnabledFunc = ModIsOffCached("mouseleft")
+  press1.isEnabledFunc = disabledWhenMoving
+  press3 = actionClick(high,"3",2500,200,{action})
+  press3.pressFunc = function(key)
+    press("3")
+    press("lshift")
+  end
+  press3.releaseFunc = function(key)
+    release("3")
+    click("mouseleft")
+    release("lshift")
+  end
+  press3.isEnabledFunc = disabledWhenMoving
+  -- pressLShift = holdKey(1,"lshift",{})
 
   local function press1_more()
     press1.holdTime = press1_extended_time
@@ -650,27 +714,44 @@ function threads_dh_strafe2()
     press1.cycleTime = press3_time + press1_time
   end
 
-  speedControl = modEdgeTrigger("capslock", press1_more, press1_less)
+  speedControl = modEdgeTrigger("capslock", press1_less, press1_more)
 
-
-
-  runPrograms({press1,press3},{replaceML,speedControl},action,{"mouseleft"})
-
-  release("1")
-  release("2")
-  release("3")
-  release("4")
-  release("mouseright")
-  release("mouseleft")
-  release("backslash")
-  release("lshift")
+  runPrograms(
+    {press1,press3},
+    {replaceML,speedControl,click2,click4,clickMR,clickQ},
+    action
+  )
 end
 
+-- function OnEvent(event, arg)
+--   --OutputLogMessage("event = %s, arg = %s\n", event, arg);
+-- -- [[
+--     if (event == "MOUSE_BUTTON_PRESSED") and arg == 9 then
+--       threads_dh_strafe2()
+--     end
+-- --]]
+-- end
+
+last_release_switch=-1
 function OnEvent(event, arg)
-  --OutputLogMessage("event = %s, arg = %s\n", event, arg);
--- [[
-    if (event == "MOUSE_BUTTON_PRESSED") and arg == 9 then
-      threads_dh_strafe2()
+  OutputLogMessage("event = %s, arg = %s\n", event, arg)
+  --OutputLogMessage("time = %s event = %s, arg = %s\n", GetRunningTime(), event, arg)
+  MODIFIER_ON_CACHE={}
+
+  local funcs={
+    [8] = func_selector,
+    [6] = func_selector,
+  }
+  if (funcs[arg] ~= nil) then
+    if (event == "MOUSE_BUTTON_PRESSED") then
+      if GetRunningTime()-last_release_switch <= 5 then
+        return
+      end
+      funcs[arg]()
     end
---]]
+    if (event == "MOUSE_BUTTON_RELEASED") then
+      last_release_switch=GetRunningTime()
+    end 
+  end 
+
 end

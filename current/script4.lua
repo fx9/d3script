@@ -39,7 +39,6 @@ RTime = GetRunningTime
 Profiling result shows that the actions generally complete in <0.01 ms *Running time*
 However, some actions may cause waiting time, which is not profilable with GetRunningTime.
 Press/release of mouseleft may take up to 0.06 ms actual time.
-
 --]]
 --[[
 function profile(func)
@@ -79,7 +78,6 @@ function profileRelease(key)
   end
   profile(releaseKeyProfiling)
 end
-
 --]]
 
 MODIFIER_CHECK_FUNCTIONS = {

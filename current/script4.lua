@@ -18,9 +18,8 @@ function func_selector()
   mouse_move = false
 end
 
-
 DEBUG = false
-LOOP_DELAY=1
+LOOP_DELAY = 1
 function log(msg, name, value)
   if not DEBUG then
     return
@@ -83,7 +82,7 @@ end
 
 --]]
 
-MODIFIER_CHECK_FUNCTIONS={
+MODIFIER_CHECK_FUNCTIONS = {
   ["shift"] = function() return IsModifierPressed("shift") end,
   ["lshift"] = function() return IsModifierPressed("lshift") end,
   ["rshift"] = function() return IsModifierPressed("rshift") end,
@@ -103,7 +102,7 @@ MODIFIER_CHECK_FUNCTIONS={
   ["mouse5"] = function() return IsMouseButtonPressed(5) end,
 }
 
-MOUSE_KEYS={
+MOUSE_KEYS = {
   ["mouseleft"] = 1,
   ["mousemid"] = 2,
   ["mouseright"] = 3,
@@ -111,18 +110,18 @@ MOUSE_KEYS={
   ["mouse5"] = 5,
 }
 
-MOUSE_WHEELS={
+MOUSE_WHEELS = {
   ["mousewheelup"] = 1,
   ["mousewheeldown"] = -1,
 }
 
-LOCK_KEYS={
+LOCK_KEYS = {
   ["scrolllock"] = 1,
   ["capslock"] = 1,
   ["numlock"] = 1,
 }
 
-MODIFIER_ON_CACHE={}
+MODIFIER_ON_CACHE = {}
 
 function isOnCached(flag)
   if MODIFIER_ON_CACHE[flag] == nil then
@@ -165,7 +164,8 @@ end
 
 function click(target)
   log("click", target, RTime())
-  if type(target) == "string" then -- key
+  if type(target) == "string" then
+    -- key
     local key = target
     if MOUSE_KEYS[key] ~= nil then
       PressAndReleaseMouseButton(MOUSE_KEYS[key])
@@ -176,9 +176,10 @@ function click(target)
     else
       PressAndReleaseKey(key)
     end
-  else -- function
+  else
+    -- function
     target()
-  end    
+  end
 end
 
 function setOn(key)
@@ -202,7 +203,6 @@ function setOff(key)
   end
 end
 
-
 Resource = {
   program = nil,
   onRelease = nil, -- func() to call on resource release.
@@ -216,7 +216,7 @@ function Resource:new(o)
 end
 
 function Resource:removeOwner()
-  if self.onRelease ~= nil then 
+  if self.onRelease ~= nil then
     self.onRelease()
   end
   self.onRelease = nil
@@ -228,7 +228,7 @@ function Resource:isOwnedBy(program)
 end
 
 function Resource:isFree()
-  return  self.program == nil
+  return self.program == nil
 end
 
 function Resource:acquire(program, onRelease)
@@ -251,14 +251,14 @@ function doNothing(...)
 end
 
 CdClick = {
-  name="",
+  name = "",
   priority = 0,
   key = "",
   resources = {},
   cycleTime = 0, -- total intended time of a cd-press-release cycle. if set to -1, the click will execute only once.
   holdTime = 0, -- hold key for this time, and then release. if set to -1, it will attempt to hold infinitely.
 
-  pressFunc = press,  -- func(key) to press
+  pressFunc = press, -- func(key) to press
   releaseFunc = release, -- func(key) to release. will be called on destroy/disable
 
   isEnabledFunc = nil, -- func() returns bool to determine whether it's enabled. nil to skip the whole isEnabled handling
@@ -322,7 +322,7 @@ function CdClick:AddResource(r)
 end
 
 function CdClick:Set(name, value)
-  self[name]=value
+  self[name] = value
   return self
 end
 
@@ -351,7 +351,6 @@ function CdClick:haveAllResources()
   return true
 end
 
-
 function CdClick:acquireAllResources()
   --log("acquireAllResources", self.key)
   for i, rsc in ipairs(self.resources) do
@@ -374,7 +373,6 @@ function CdClick:acquireAllResources()
   end
   return true
 end
-
 
 function CdClick:pressKey()
   -- log("pressKey", "key", self.key)
@@ -406,7 +404,6 @@ function CdClick:releaseResources()
   end
 end
 
-
 function CdClick:Reset()
   self.pressTs = -1
   self.clickDone = true -- ready to start next cycle
@@ -421,12 +418,12 @@ end
 
 function CdClick:Init()
   self:Reset()
-  self.onEnabledClosure = function ()
+  self.onEnabledClosure = function()
     -- logif(self.key=="backslash","enabled","time",RTime())
     self:Reset()
     self:onEnabledFunc()
   end
-  self.onDisabledClosure = function ()
+  self.onDisabledClosure = function()
     -- logif(self.key=="backslash","disabled","time",RTime())
     self:onDisabledFunc()
     self:Cleanup()
@@ -445,8 +442,10 @@ function CdClick:operate()
   if not self:pressed() then
     -- not pressed, either before or after click
     --log("clickDone", self.clickDone)
-    if self.clickDone then -- after click
-      if not self:cdIsDone() then -- should not start next cycle, nothing to do
+    if self.clickDone then
+      -- after click
+      if not self:cdIsDone() then
+        -- should not start next cycle, nothing to do
         return
       end
       -- start next cycle
@@ -479,7 +478,7 @@ end
 
 function CdClick:Resume()
   self:operate()
-  -- coroutine.resume(self.co) 
+  -- coroutine.resume(self.co)
 end
 
 function CdClick:Cleanup()
@@ -518,7 +517,6 @@ function runPrograms(actions)
     p:Cleanup()
   end
 end
-
 
 function runWithInsertedNoActions(actions, noActions, actionResource)
   cachedMods = cachedMods or {}
@@ -564,8 +562,6 @@ function runWithInsertedNoActions(actions, noActions, actionResource)
     p:Cleanup()
   end
 end
-
-
 
 ProgramRunner = {
   commonResources = {},
@@ -636,7 +632,7 @@ function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
 end
 
 function ProgramRunner:AddModEdgeTrigger(mod, upFunc, downFunc)
-  local p = self:AddEdgeTrigger(ModIsOn(mod),upFunc, downFunc)
+  local p = self:AddEdgeTrigger(ModIsOn(mod), upFunc, downFunc)
   return p
 end
 
@@ -690,9 +686,9 @@ function ModOnCacheMatchesMap(modOnMap)
 end
 
 function releaseAndPressML(replaceKey)
-  local lshiftOn=false
+  local lshiftOn = false
   if isOn("lshift") then
-    lshiftOn=true
+    lshiftOn = true
     release("lshift")
   end
   release(replaceKey)
@@ -718,25 +714,12 @@ function threads_dh_strafe2()
     return enabled
   end
 
-  local click2 = runner:AddNoAction{
-    key = "2",
-    cycleTime = 4200,
-  }
-  local click4 = runner:AddNoAction{
-    key = "4",
-    cycleTime = 500,
-    align = -500,
-  }
-  local clickMR = runner:AddNoAction{
-    key = "mouseright",
-    cycleTime = 500,
-  }
-  local clickQ = runner:AddNoAction{
-    key = "q",
-    cycleTime = 500,
-  }
+  local click2 = runner:AddNoAction { key = "2", cycleTime = 4200, }
+  local click4 = runner:AddNoAction { key = "4", cycleTime = 500, align = -500, }
+  local clickMR = runner:AddNoAction { key = "mouseright", cycleTime = 500, }
+  local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
 
-  local replaceML = runner:AddNoAction{
+  local replaceML = runner:AddNoAction {
     key = "q",
     cycleTime = 500,
 
@@ -755,12 +738,12 @@ function threads_dh_strafe2()
     end,
   }
 
-  local press1Time=340
-  local press1MoreTime=2300
-  local press3Time=200
+  local press1Time = 340
+  local press1MoreTime = 2300
+  local press3Time = 200
   local total13Time = press1MoreTime + press3Time
 
-  local press1 = runner:Add{
+  local press1 = runner:Add {
     priority = 1,
     key = "1",
     cycleTime = total13Time,
@@ -770,7 +753,7 @@ function threads_dh_strafe2()
     isEnabledFunc = disabledWhenMoving,
   }
 
-  local press3 = runner:Add{
+  local press3 = runner:Add {
     priority = high,
     key = "3",
     cycleTime = total13Time,
@@ -810,26 +793,25 @@ function threads_dh_strafe2()
   runner:run()
 end
 
-last_release_switch=-1
+last_release_switch = -1
 function OnEvent(event, arg)
   OutputLogMessage("event = %s, arg = %s\n", event, arg)
   --OutputLogMessage("time = %s event = %s, arg = %s\n", GetRunningTime(), event, arg)
-  MODIFIER_ON_CACHE={}
+  MODIFIER_ON_CACHE = {}
 
-  local funcs={
+  local funcs = {
     [8] = func_selector,
     [6] = func_selector,
   }
   if (funcs[arg] ~= nil) then
     if (event == "MOUSE_BUTTON_PRESSED") then
-      if GetRunningTime()-last_release_switch <= 5 then
+      if GetRunningTime() - last_release_switch <= 5 then
         return
       end
       funcs[arg]()
     end
     if (event == "MOUSE_BUTTON_RELEASED") then
-      last_release_switch=GetRunningTime()
-    end 
-  end 
-
+      last_release_switch = GetRunningTime()
+    end
+  end
 end

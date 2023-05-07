@@ -250,10 +250,11 @@ function doNothing(...)
 end
 
 CdClick = {
+  name="",
   priority = 0,
   key = "",
   resources = {},
-  cycleTime = 0, -- total intended time of a cd-press-release cycle.
+  cycleTime = 0, -- total intended time of a cd-press-release cycle. if set to -1, the click will execute only once.
   holdTime = 0, -- hold key for this time, and then release. if set to -1, it will attempt to hold infinitely.
 
   pressFunc = press,  -- func(key) to press
@@ -314,8 +315,18 @@ function CdClick:new(o)
   return o
 end
 
+function CdClick:AddResource(r)
+  table.insert(self.resources, r)
+  return self
+end
+
+function CdClick:Set(name, value)
+  self[name]=value
+  return self
+end
+
 function CdClick:cdIsDone()
-  return RTime() - self.startTs >= self.cycleTime
+  return self.cycleTime ~= -1 and RTime() - self.startTs >= self.cycleTime
 end
 
 function CdClick:holdIsDone()
@@ -395,7 +406,7 @@ function CdClick:releaseResources()
 end
 
 
-function CdClick:internalInit()
+function CdClick:Reset()
   self.pressTs = -1
   self.clickDone = true -- ready to start next cycle
   self.startTs = RTime() - self.cycleTime + self.firstCycleOffset
@@ -408,16 +419,16 @@ function CdClick:internalInit()
 end
 
 function CdClick:Init()
-  self:internalInit()
+  self:Reset()
   self.onEnabledClosure = function ()
     -- logif(self.key=="backslash","enabled","time",RTime())
-    self:internalInit()
+    self:Reset()
     self:onEnabledFunc()
   end
   self.onDisabledClosure = function ()
     -- logif(self.key=="backslash","disabled","time",RTime())
     self:onDisabledFunc()
-    self:Destroy()
+    self:Cleanup()
   end
 end
 
@@ -470,7 +481,7 @@ function CdClick:Resume()
   -- coroutine.resume(self.co) 
 end
 
-function CdClick:Destroy()
+function CdClick:Cleanup()
   self:releaseKey()
   self:releaseResources()
   -- self.co = nil
@@ -482,7 +493,33 @@ function updateModCache()
   end
 end
 
-function runPrograms(actions, noActions, actionResource)
+function runPrograms(actions)
+  cachedMods = cachedMods or {}
+
+  for i, p in ipairs(actions) do
+    p:Init()
+  end
+
+  while true do
+    Sleep(LOOP_DELAY)
+    updateModCache()
+
+    for i, action in ipairs(actions) do
+      action:Resume()
+    end
+
+    if isOff("scrolllock") then
+      break
+    end
+  end
+
+  for i, p in ipairs(actions) do
+    p:Cleanup()
+  end
+end
+
+
+function runWithInsertedNoActions(actions, noActions, actionResource)
   cachedMods = cachedMods or {}
 
   for i, p in ipairs(actions) do
@@ -492,21 +529,23 @@ function runPrograms(actions, noActions, actionResource)
     p:Init()
   end
 
-  local noActionExecuted = false
+  local noActionsExecuted = false
   while true do
     Sleep(LOOP_DELAY)
     updateModCache()
 
+    noActionsExecuted = false
     for i, action in ipairs(actions) do
-      if not noActionExecuted and actionResource:isFree() then
+      if not noActionsExecuted and actionResource:isFree() then
         for j, noAction in ipairs(noActions) do
           noAction:Resume()
         end
+        noActionsExecuted = true
       end
       action:Resume()
     end
 
-    if not noActionExecuted then
+    if not noActionsExecuted then
       for j, noAction in ipairs(noActions) do
         noAction:Resume()
       end
@@ -518,67 +557,95 @@ function runPrograms(actions, noActions, actionResource)
   end
 
   for i, p in ipairs(actions) do
-    p:Destroy()
+    p:Cleanup()
   end
   for i, p in ipairs(noActions) do
-    p:Destroy()
+    p:Cleanup()
   end
-
 end
 
-function holdKey(priority, key, resources)
-  return CdClick:new{holdTime = -1, key = key, priority = priority, resources = resources}
+
+
+ProgramRunner = {
+  commonResources = {},
+  programs = {},
+}
+
+function ProgramRunner:new(o)
+  o = o or {}
+  setmetatable(o, self)
+  self.__index = self
+  return o
 end
 
-function noActionClick(priority, key, cd, resources)
-  return CdClick:new{
-    priority = priority,
-    key = key,
-    resources = resources,
-    cycleTime = cd,
-    holdTime = 0,
-
-    pressFunc = click, 
-    releaseFunc = doNothing,
-  }
+function ProgramRunner:AddCommonResource(r)
+  r = r or Resource:new()
+  table.insert(self.commonResources, r)
+  return r
 end
 
-function actionClick(priority, key, cd, holdTime, resources)
-  return CdClick:new{
-    priority = priority,
-    key = key,
-    resources = resources,
-    cycleTime = cd,
-    holdTime = holdTime,
-  }
+-- function ProgramRunner:HasResource(r)
+--   for i, rsc in ipairs(self.commonResources) do
+--     if rsc == r then
+--       return true
+--     end
+--   end
+--   return false
+-- end
+
+function ProgramRunner:Add(p)
+  p = p or {}
+  local resources = p.resources
+  p = CdClick:new(p)
+  table.insert(self.programs, p)
+  if resources == nil then
+    for i, rsc in ipairs(self.commonResources) do
+      p:AddResource(rsc)
+    end
+  end
+  return p
 end
 
-function modEdgeTrigger(mod, upFunc, downFunc)
-  return CdClick:new{
-    holdTime = -1,
-
-    pressFunc = doNothing,
-    releaseFunc = doNothing,
-
-    isEnabledFunc = ModIsOn(mod),
-    isEnabled = isOff(mod), -- use flip value to ensure upFunc/downFunc called immediately
-    onEnabledFunc = upFunc,
-    onDisabledFunc = downFunc,
-  }
+function ProgramRunner:AddHoldKey(p)
+  p = self:Add(p)
+  p.holdTime = -1
+  return p
 end
 
-function modEdgeTriggerCached(mod, upFunc, downFunc)
-  return CdClick:new{
-    holdTime = -1,
+function ProgramRunner:AddNoAction(p)
+  p = self:Add(p)
+  p.holdTime = 0
+  p.pressFunc = click
+  p.releaseFunc = doNothing
+  return p
+end
 
-    pressFunc = doNothing,
-    releaseFunc = doNothing,
+function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
+  local p = self:Add()
+  p.holdTime = -1
 
-    isEnabledFunc = ModIsOnCached(mod),
-    isEnabled = isOffCached(mod), -- use flip value to ensure upFunc/downFunc called immediately
-    onEnabledFunc = upFunc,
-    onDisabledFunc = downFunc,
-  }
+  p.pressFunc = doNothing
+  p.releaseFunc = doNothing
+
+  p.isEnabledFunc = isEnabledFunc
+  p.isEnabled = not isEnabledFunc() -- use flipped isEnabled to ensure upFunc/downFunc called immediately
+  p.onEnabledFunc = upFunc
+  p.onDisabledFunc = downFunc
+  return p
+end
+
+function ProgramRunner:AddModEdgeTrigger(mod, upFunc, downFunc)
+  local p = self:AddEdgeTrigger(ModIsOn(mod),upFunc, downFunc)
+  return p
+end
+
+function ProgramRunner:AddModEdgeTriggerChached(mod, upFunc, downFunc)
+  local p = self:AddEdgeTrigger(ModIsOnCached(mod), upFunc, downFunc)
+  return p
+end
+
+function ProgramRunner:run()
+  runPrograms(self.programs)
 end
 
 function ModIsOn(mod)
@@ -621,125 +688,126 @@ function ModOnCacheMatchesMap(modOnMap)
   return func
 end
 
-function release_and_press_mouseleft(replace_key)
-  local lshift_on=false
+function releaseAndPressML(replaceKey)
+  local lshiftOn=false
   if isOn("lshift") then
-    lshift_on=true
+    lshiftOn=true
     release("lshift")
   end
-  release(replace_key)
+  release(replaceKey)
   release("mouseleft")
-  press(replace_key)
-  if lshift_on then
+  press(replaceKey)
+  if lshiftOn then
     press("lshift")
   end
   press("mouseleft")
   Sleep(1)
 end
 
-function test2()
-  action = Resource:new()
-  h = holdKey(0,"1",{action})
-  h2 = holdKey(1,"2",{action})
-  h2.isEnabledFunc = ModIsOn("mouseleft")
-  h.isEnabledFunc = ModIsOff("mouseleft")
-  c = noActionClick(10,"3",1000,{action})
-
-  runPrograms({h,h2,c})
-  Sleep(5000)
-    ReleaseKey("1")
-    ReleaseKey("2")
-    ReleaseKey("3")
-end
-
 function threads_dh_strafe2()
-  local action = Resource:new()
+  local runner = ProgramRunner:new()
+  local action = runner:AddCommonResource()
 
   local low = 0
   local high = 10
   local interrupt = 100
 
   local enabled = true
-  function disabledWhenMoving()
+  local function disabledWhenMoving()
     return enabled
   end
 
-  click2 = noActionClick(low,"2",4200,{action})
-  click4 = noActionClick(low,"4",500,{action})
-  click4.align = -500
-  clickMR = noActionClick(low,"mouseright",500,{action})
-  clickQ = noActionClick(low,"q",500,{action})
-  -- clickML = noActionClick(low,"mouseleft",5000,{action})
-  -- clickML.align = -500
-  -- clickML.isEnabledFunc = disabledWhenMoving
+  local click2 = runner:AddNoAction{
+    key = "2",
+    cycleTime = 4200,
+  }
+  local click4 = runner:AddNoAction{
+    key = "4",
+    cycleTime = 500,
+    align = -500,
+  }
+  local clickMR = runner:AddNoAction{
+    key = "mouseright",
+    cycleTime = 500,
+  }
+  local clickQ = runner:AddNoAction{
+    key = "q",
+    cycleTime = 500,
+  }
 
-  replaceML = noActionClick(interrupt,"backslash",200,{action})
-  replaceML.pressFunc = release_and_press_mouseleft
-  replaceML.releaseFunc = release
-  replaceML.isEnabledFunc = ModIsOn("mouseleft")
-  replaceML.onEnabledFunc = function(self)
-    log("replaceML enabled")
-    enabled = false
-  end
-  replaceML.onDisabledFunc = function(self)
-    log("replaceML disabled")
-    enabled = true
-  end
+  local replaceML = runner:AddNoAction{
+    key = "q",
+    cycleTime = 500,
 
+    pressFunc = releaseAndPressML,
 
-  press1_time=340
-  press1_extended_time=2300
-  press3_time=200
+    isEnabledFunc = ModIsOn("mouseleft"),
+    onEnabledFunc = function(self)
+      log("replaceML enabled")
+      enabled = false
+    end,
 
-  press1 = actionClick(1,"1",2500,2300,{action})
-  press1.firstCycleOffset = 100
-  press1.isEnabledFunc = disabledWhenMoving
-  press3 = actionClick(high,"3",2500,200,{action})
-  press3.pressFunc = function(key)
-    press("3")
-    press("lshift")
-  end
-  press3.releaseFunc = function(key)
-    release("3")
-    if enabled then
-      click("mouseleft")
-    end
-    release("lshift")
-  end
-  press3.isEnabledFunc = disabledWhenMoving
-  -- pressLShift = holdKey(1,"lshift",{})
+    onDisabledFunc = function(self)
+      log("replaceML disabled")
+      release(self.key)
+      enabled = true
+    end,
+  }
 
-  local function press1_more()
-    press1.holdTime = press1_extended_time
-    press3.cycleTime = press3_time + press1_extended_time
-    press1.cycleTime = press3_time + press1_extended_time
+  local press1Time=340
+  local press1MoreTime=2300
+  local press3Time=200
+  local total13Time = press1MoreTime + press3Time
+
+  local press1 = runner:Add{
+    priority = 1,
+    key = "1",
+    cycleTime = total13Time,
+    holdTime = press1MoreTime,
+
+    firstCycleOffset = 100,
+    isEnabledFunc = disabledWhenMoving,
+  }
+
+  local press3 = runner:Add{
+    priority = high,
+    key = "3",
+    cycleTime = total13Time,
+    holdTime = press3Time,
+
+    firstCycleOffset = 100,
+    isEnabledFunc = disabledWhenMoving,
+    pressFunc = function(key)
+      press("3")
+      press("lshift")
+    end,
+    releaseFunc = function(key)
+      release("3")
+      if enabled then
+        click("mouseleft")
+      end
+      release("lshift")
+    end,
+  }
+
+  local function press1More()
+    press1.holdTime = press1MoreTime
+    press1.cycleTime = press3Time + press1MoreTime
+    press3.cycleTime = press3Time + press1MoreTime
     press1:Init()
     press3:Init()
   end
 
-  local function press1_less()
-    press1.holdTime = press1_time
-    press3.cycleTime = press3_time + press1_time
-    press1.cycleTime = press3_time + press1_time
+  local function press1Less()
+    press1.holdTime = press1Time
+    press1.cycleTime = press3Time + press1Time
+    press3.cycleTime = press3Time + press1Time
   end
 
-  speedControl = modEdgeTrigger("capslock", press1_less, press1_more)
+  local speedControl = runner:AddModEdgeTriggerChached("capslock", press1Less, press1More)
 
-  runPrograms(
-    {press1,press3},
-    {replaceML,speedControl,click2,click4,clickMR,clickQ},
-    action
-  )
+  runner:run()
 end
-
--- function OnEvent(event, arg)
---   --OutputLogMessage("event = %s, arg = %s\n", event, arg);
--- -- [[
---     if (event == "MOUSE_BUTTON_PRESSED") and arg == 9 then
---       threads_dh_strafe2()
---     end
--- --]]
--- end
 
 last_release_switch=-1
 function OnEvent(event, arg)

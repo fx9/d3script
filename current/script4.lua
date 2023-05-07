@@ -1,4 +1,4 @@
-function print(msg, name, value)
+function myprint(msg, name, value)
   if name == nil then
     OutputLogMessage("%s\n", tostring(msg))
     return
@@ -11,6 +11,7 @@ function print(msg, name, value)
 
   OutputLogMessage("%s: %s = %s\n", tostring(msg), tostring(name), tostring(value))
 end
+print = myprint
 
 function func_selector()
   threads_dh_strafe2()
@@ -24,7 +25,7 @@ function log(msg, name, value)
   if not DEBUG then
     return
   end
-  print(msg, name, value)
+  myprint(msg, name, value)
 end
 
 function logif(condition, msg, name, value)
@@ -43,15 +44,15 @@ Press/release of mouseleft may take up to 0.06 ms actual time.
 --]]
 --[[
 function profile(func)
-  print("start")
+  myprint("start")
   local startTime = GetRunningTime()
   for i=1,100000 do
     func()
   end
   local endTime = GetRunningTime()
-  print("100000 cycles average time", (endTime-startTime)/100000.0)
-  print("startTime", startTime)
-  print("endTime", endTime)
+  myprint("100000 cycles average time", (endTime-startTime)/100000.0)
+  myprint("startTime", startTime)
+  myprint("endTime", endTime)
 end
 
 function profileGetRunningTime()

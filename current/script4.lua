@@ -202,6 +202,7 @@ function setOff(key)
 end
 
 Resource = {
+  name = "",
   program = nil,
   onRelease = nil, -- func() to call on resource release.
 }
@@ -245,16 +246,32 @@ function Resource:canAcquire(program)
   return self:isFree() or self:isOwnedBy(program) or self.program.priority < program.priority
 end
 
+function Resource:programKey()
+  if self:isFree() then
+    return "nil"
+  end
+  return self.program.key
+end
+
 function doNothing(...)
 end
 
-CdClick = {
+CdAction = {
   name = "",
   priority = 0,
   key = "",
   resources = {},
-  cycleTime = 0, -- total intended time of a cd-press-release cycle. if set to -1, the click will execute only once.
+  cycleTime = 0, -- total intended time of a cd-press-release cycle.
   holdTime = 0, -- hold key for this time, and then release. if set to -1, it will attempt to hold infinitely.
+  onlyOnce = false, -- if true, only execute the action once.
+  subActions = {}, -- subActions is a list of CdAction following special rules.
+  -- subActions start in sequence after pressFunc is executed.
+  -- A subAction must not acquire the resource of its parent action, or it will cause a deadlock.
+  -- A subAction doesn't need to ensure its releaseFunc properly cleaning up its status.
+  -- When using subActions,
+  --   releaseFunc will not be called when holdTime is reached, until all remaining subActions are executed.
+  --   releaseFunc must ensure cleaning up status caused by subActions.
+  currentSubActionIndex = 0, -- index is 1-based; 0 means the first subAction needs initialization.
 
   pressFunc = press, -- func(key) to press
   releaseFunc = release, -- func(key) to release. will be called on destroy/disable
@@ -271,6 +288,7 @@ CdClick = {
   startTs = 0, -- timestamp when the current cycle starts
   pressTs = 0, -- timestamp when the key was recently pressed. Should remain -1 if the key is not being pressed
   clickDone = false, -- true if the press-release is done without interruption in the cycle.
+  started = false, -- whether the program has started
 
   onEnabledClosure = nil, -- func() to execute when enabled - this will include onEnabledFunc
   onDisabledClosure = nil, -- func() to execute when disabled - this will include onDisabledFunc
@@ -307,29 +325,39 @@ function alignedTs(oldTs, newTs, align)
   end
 end
 
-function CdClick:new(o)
+function CdAction:new(o)
   o = o or {}
+  if o.resources == nil then
+    o.resources = {}
+  end
+  if o.subActions == nil then
+    o.subActions = {}
+  end
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
-function CdClick:AddResource(r)
+function CdAction:AddResource(r)
   table.insert(self.resources, r)
   return self
 end
 
-function CdClick:Set(name, value)
+function CdAction:Set(name, value)
   self[name] = value
   return self
 end
 
-function CdClick:cdIsDone()
+function CdAction:cdIsDone()
   return self.cycleTime ~= -1 and RTime() - self.startTs >= self.cycleTime
 end
 
-function CdClick:holdIsDone()
+function CdAction:holdIsDone()
   if self.holdTime == -1 then
+    return false
+  end
+
+  if not self:subActionsAreDone() then
     return false
   end
 
@@ -340,7 +368,57 @@ function CdClick:holdIsDone()
   return true
 end
 
-function CdClick:haveAllResources()
+-- subAction methods --
+function CdAction:isDone()
+  return self:cdIsDone() and self:holdIsDone()
+end
+
+function CdAction:subActionsAreDone()
+  -- index is 1-based
+  return self.currentSubActionIndex > table.getn(self.subActions)
+end
+
+function CdAction:currentSubAction()
+  -- index is 1-based
+  return self.subActions[self.currentSubActionIndex]
+end
+
+function CdAction:nextSubAction()
+  self.currentSubActionIndex = self.currentSubActionIndex + 1
+  if not self:subActionsAreDone() then
+    self:currentSubAction():Init()
+  end
+end
+
+function CdAction:startSubActions()
+  self.currentSubActionIndex = 0
+  self:nextSubAction()
+end
+
+function CdAction:operateSubActions()
+  if not self:subActionsAreDone() then
+    local s = self:currentSubAction()
+    -- Reset() already ensured that the first subAction is initialized, if it exists
+    s:Resume()
+    if s:isDone() then
+      s:Cleanup()
+      self:nextSubAction()
+    end
+  end
+end
+
+function CdAction:completeSubActions()
+  if self.currentSubActionIndex == 0 then
+    return
+  end
+  while not self:subActionsAreDone() do
+    self:currentSubAction():Resume()
+    self:currentSubAction():Cleanup()
+    self:nextSubAction()
+  end
+end
+
+function CdAction:haveAllResources()
   for i, rsc in ipairs(self.resources) do
     if not rsc:isOwnedBy(self) then
       return false
@@ -349,9 +427,10 @@ function CdClick:haveAllResources()
   return true
 end
 
-function CdClick:acquireAllResources()
+function CdAction:acquireAllResources()
   --log("acquireAllResources", self.key)
   for i, rsc in ipairs(self.resources) do
+    --logif(self.key == "a", "resource", rsc.name, rsc:programKey())
     if not rsc:canAcquire(self) then
       return false
     end
@@ -372,7 +451,7 @@ function CdClick:acquireAllResources()
   return true
 end
 
-function CdClick:pressKey()
+function CdAction:pressKey()
   -- log("pressKey", "key", self.key)
   self.pressFunc(self.key)
   self.pressTs = RTime()
@@ -381,19 +460,21 @@ function CdClick:pressKey()
   if not self.cycleStartsFromAcquire then
     self.startTs = alignedTs(self.startTs, self.pressTs, self.align)
   end
+  self:startSubActions()
 end
 
-function CdClick:pressed()
+function CdAction:pressed()
   return self.pressTs ~= -1
 end
 
-function CdClick:releaseKey()
+function CdAction:releaseKey()
   -- log("releaseKey", "key", self.key)
+  self:completeSubActions()
   self.releaseFunc(self.key)
   self.pressTs = -1
 end
 
-function CdClick:releaseResources()
+function CdAction:releaseResources()
   --log("releaseResources", self.key)
   for i, rsc in ipairs(self.resources) do
     if rsc:isOwnedBy(self) then
@@ -402,10 +483,11 @@ function CdClick:releaseResources()
   end
 end
 
-function CdClick:Reset()
+function CdAction:Reset()
   self.pressTs = -1
   self.clickDone = true -- ready to start next cycle
   self.startTs = RTime() - self.cycleTime + self.firstCycleOffset
+  self.started = false
   -- self.co = coroutine.create(function()
   --   while true do
   --     self:operate()
@@ -414,7 +496,7 @@ function CdClick:Reset()
   -- end)
 end
 
-function CdClick:Init()
+function CdAction:Init()
   self:Reset()
   self.onEnabledClosure = function()
     -- logif(self.key=="backslash","enabled","time",RTime())
@@ -428,7 +510,7 @@ function CdClick:Init()
   end
 end
 
-function CdClick:operate()
+function CdAction:operate()
   if self.isEnabledFunc ~= nil then
     self.isEnabled = edgeTrigger(self.isEnabled, self.isEnabledFunc(), self.onEnabledClosure, self.onDisabledClosure)
     if not self.isEnabled then
@@ -442,11 +524,12 @@ function CdClick:operate()
     --log("clickDone", self.clickDone)
     if self.clickDone then
       -- after click
-      if not self:cdIsDone() then
+      if (self.onlyOnce and self.started) or not self:cdIsDone() then
         -- should not start next cycle, nothing to do
         return
       end
       -- start next cycle
+      self.started = true
       self.clickDone = false
       if self.cycleStartsFromAcquire then
         self.startTs = alignedTs(self.startTs, RTime(), self.align)
@@ -467,6 +550,10 @@ function CdClick:operate()
   -- key pressed
   --log("holdTime", self.holdTime)
   --log("pressTs", self.pressTs)
+
+  -- handle subActions
+  self:operateSubActions()
+
   if self:holdIsDone() then
     self.clickDone = true
     self:releaseKey()
@@ -474,12 +561,12 @@ function CdClick:operate()
   end
 end
 
-function CdClick:Resume()
+function CdAction:Resume()
   self:operate()
   -- coroutine.resume(self.co)
 end
 
-function CdClick:Cleanup()
+function CdAction:Cleanup()
   self:releaseKey()
   self:releaseResources()
   -- self.co = nil
@@ -568,13 +655,20 @@ ProgramRunner = {
 
 function ProgramRunner:new(o)
   o = o or {}
+  if o.commonResources == nil then
+    o.commonResources = {}
+  end
+  if o.programs == nil then
+    o.programs = {}
+  end
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
 function ProgramRunner:AddCommonResource(r)
-  r = r or Resource:new()
+  r = r or {}
+  r = Resource:new(r)
   table.insert(self.commonResources, r)
   return r
 end
@@ -591,7 +685,7 @@ end
 function ProgramRunner:Add(p)
   p = p or {}
   local resources = p.resources
-  p = CdClick:new(p)
+  p = CdAction:new(p)
   table.insert(self.programs, p)
   if resources == nil then
     for i, rsc in ipairs(self.commonResources) do
@@ -636,6 +730,12 @@ end
 
 function ProgramRunner:AddModEdgeTriggerChached(mod, upFunc, downFunc)
   local p = self:AddEdgeTrigger(ModIsOnCached(mod), upFunc, downFunc)
+  return p
+end
+
+function ProgramRunner:AddSubAction(p)
+  p = self:Add(p)
+  p.onlyOnce = true
   return p
 end
 
@@ -701,7 +801,7 @@ end
 
 function threads_dh_strafe2()
   local runner = ProgramRunner:new()
-  local action = runner:AddCommonResource()
+  local action = runner:AddCommonResource{name="action"}
 
   local low = 0
   local high = 10
@@ -787,6 +887,55 @@ function threads_dh_strafe2()
   end
 
   local speedControl = runner:AddModEdgeTriggerChached("capslock", press1Less, press1More)
+
+  runner:run()
+end
+
+function testaBc()
+  local runner = ProgramRunner:new()
+  local subActions = ProgramRunner:new{}
+  local action = runner:AddCommonResource{name="action"}
+
+  local low = 0
+  local high = 10
+  local interrupt = 100
+
+  local clickA = subActions:AddSubAction{
+    key = "a",
+    holdTime = 700,
+    firstCycleOffset = 0,
+  }
+  subActions:AddSubAction{
+    key = "lshift",
+    holdTime = 0,
+    firstCycleOffset = 500,
+    releaseFunc = doNothing,
+  }
+  subActions:AddSubAction{
+    key = "b",
+    holdTime = 1000,
+    firstCycleOffset = 0,
+  }
+  subActions:AddSubAction{
+    key = "lshift",
+    holdTime = 0,
+    firstCycleOffset = 0,
+    pressFunc = doNothing,
+  }
+  subActions:AddSubAction{
+    key = "c",
+    holdTime = 1000,
+    firstCycleOffset = 500,
+  }
+  local click1234 = runner:Add {
+    priority = 1,
+    cycleTime = 5000,
+    pressFunc = doNothing,
+    releaseFunc = doNothing,
+    subActions = subActions.programs,
+    firstCycleOffset = 500,
+  }
+  local clickQ = runner:AddNoAction { key = "q", cycleTime = 100, }
 
   runner:run()
 end

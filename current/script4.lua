@@ -818,8 +818,8 @@ function threads_dh_strafe2()
   local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
 
   local replaceML = runner:AddNoAction {
-    key = "q",
-    cycleTime = 500,
+    key = "backslash",
+    cycleTime = 200,
 
     pressFunc = releaseAndPressML,
 

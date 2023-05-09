@@ -1078,6 +1078,7 @@ function OnEvent(event, arg)
   OutputLogMessage("event = %s, arg = %s\n", event, arg)
   --OutputLogMessage("time = %s event = %s, arg = %s\n", GetRunningTime(), event, arg)
   MODIFIER_ON_CACHE = {}
+  GLOBAL_AVOID_MAP = {}
 
   local funcs = {
     [8] = func_selector,

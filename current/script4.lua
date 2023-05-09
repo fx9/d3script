@@ -18,6 +18,26 @@ function func_selector()
   mouse_move = false
 end
 
+function sleepExact(ms)
+  local s = GetRunningTime()
+  if ms > 200 then
+    Sleep(ms/2)
+    sleepExact(ms - (GetRunningTime()-s))
+    return
+  end
+  local t = 0
+  while true do
+    t = GetRunningTime()
+    if ms - (t - s) < 15 then
+      while ms - (t - s) > 0 do
+        t = GetRunningTime()
+      end
+      return
+    end
+    Sleep(1)
+  end
+end
+
 DEBUG = false
 LOOP_DELAY = 1
 function log(msg, name, value)
@@ -121,6 +141,53 @@ LOCK_KEYS = {
 
 MODIFIER_ON_CACHE = {}
 
+---- cooldown click functions ----
+
+keyTimes={}
+function lastKeyTime(key)
+  local lastTs = keyTimes[key]
+  if (lastTs == nil) then
+    -- return a large negative number to prevent cooldown
+    return -10000000
+  end
+  return lastTs
+end
+
+function cdClick(key, cd, align)
+  -- align: 0, nil: unaligned; >0: align to the next point; <0: align to the previous point
+
+  -- prioritize align in cd = {cd, align}
+  if type(cd) == "table" then
+    align = cd[2]
+    cd = cd[1]
+  elseif align == nil then
+    align = 0
+  end
+
+  local prevTs = lastKeyTime(key)
+  local currTs = RTime()
+  -- adjust prevTs so it works with align correctly
+  if prevTs < 0 then
+    prevTs = currTs - cd
+  end
+
+  if currTs - prevTs >= cd then
+    if not click(key) then
+      return false
+    end
+    currTs = alignedTs(prevTs, currTs, align)
+    keyTimes[key] = currTs
+    return true
+  else
+    return false
+  end
+end
+
+function checkCd(key, cd)
+  return RTime() - last_key_time(key) >= cd
+end
+
+
 function isOnCached(flag)
   if MODIFIER_ON_CACHE[flag] == nil then
     MODIFIER_ON_CACHE[flag] = isOn(flag)
@@ -154,7 +221,7 @@ function press(key)
   if MOUSE_KEYS[key] ~= nil then
     PressMouseButton(MOUSE_KEYS[key])
   elseif MOUSE_WHEELS[key] ~= nil then
-    MoveMouseWheel(MOUSE_WHEELS[key])
+    clickMW(key)
   else
     PressKey(key)
   end
@@ -168,7 +235,7 @@ function click(target)
     if MOUSE_KEYS[key] ~= nil then
       PressAndReleaseMouseButton(MOUSE_KEYS[key])
     elseif MOUSE_WHEELS[key] ~= nil then
-      MoveMouseWheel(MOUSE_WHEELS[key])
+      return clickMW(key)
     elseif key == "" then
       -- do nothing
     else
@@ -178,6 +245,20 @@ function click(target)
     -- function
     target()
   end
+  return true
+end
+
+MIN_MOUSEWHEEL_INTERVAL=100
+lastMW=-MIN_MOUSEWHEEL_INTERVAL
+function clickMW(key)
+  local code = MOUSE_WHEELS[key]
+  local t = RTime()
+  if t - lastMW < MIN_MOUSEWHEEL_INTERVAL then
+    return false
+  end
+  MoveMouseWheel(code)
+  lastMW = t
+  return true
 end
 
 function setOn(key)
@@ -315,11 +396,11 @@ function alignedTs(oldTs, newTs, align)
   if align == 0 or align == nil then
     return newTs
   elseif align > 0 then
-    local lignedTs = newTs - timeDiff % align
-    if alignedTs < newTs then
-      alignedTs = alignedTs + align
+    local overTime = timeDiff % align
+    if overTime == 0 then
+      return newTs
     end
-    return alignedTs
+    return newTs - overTime + align
   else
     return newTs - timeDiff % (-align)
   end

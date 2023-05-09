@@ -1,21 +1,33 @@
-function myprint(msg, name, value)
-  if name == nil then
-    OutputLogMessage("%s\n", tostring(msg))
-    return
-  end
-
-  if value == nil then
-    OutputLogMessage("%s: %s\n", tostring(msg), tostring(name))
-    return
-  end
-
-  OutputLogMessage("%s: %s = %s\n", tostring(msg), tostring(name), tostring(value))
+OLM = OutputLogMessage
+function myprintT(msg, logTable)
+  OLM("%s: {", tostring(msg))
+  for k, v in pairs(logTable) do OLM("%s = %s, ", tostring(k), tostring(v)) end
+  OLM("}\n")
+end
+function myprint(msg, arg1, arg2)
+  if type(arg1) == "table" then return myprintT(msg, arg1) end
+  if arg2 ~= nil then return OLM("%s: %s = %s\n", tostring(msg), tostring(arg1), tostring(arg2)) end
+  if arg1 ~= nil then return OLM("%s: %s\n", tostring(msg), tostring(arg1)) end
+  OLM("%s\n", tostring(msg))
 end
 print = myprint
+
+DEBUG = false
+LOOP_DELAY = 1
+function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
+function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
 function func_selector()
   threads_dh_strafe2()
   mouse_move = false
+end
+
+unpack = unpack or table.unpack
+function closure(func, ...)
+  local cArg = {...}
+  return function()
+    func(unpack(cArg))
+  end
 end
 
 function sleepExact(ms)
@@ -38,22 +50,29 @@ function sleepExact(ms)
   end
 end
 
-DEBUG = false
-LOOP_DELAY = 1
-function log(msg, name, value)
-  if not DEBUG then
-    return
-  end
-  myprint(msg, name, value)
-end
-
-function logif(condition, msg, name, value)
-  if condition then
-    log(msg, name, value)
-  end
-end
-
 RTime = GetRunningTime
+GETTIME_PER_MS = 2010
+MS_PER_SLEEP = 15.3
+function timeProfiling()
+  local t = RTime()
+  local i = 0
+  while t == RTime() do i = i + 1 end
+  -- now it's beginning of a millisecond
+  t = RTime()
+  i = 0
+  local loops = 1
+  while t + loops > RTime() do i = i + 1 end
+  GETTIME_PER_MS = i/loops
+  print("GETTIME_PER_MS", GETTIME_PER_MS)
+
+  local sleeps = 10
+  local start = RTime()
+  for _ = 1,sleeps do
+    Sleep(1)
+  end
+  MS_PER_SLEEP = (RTime() - start)/sleeps
+  print("MS_PER_SLEEP", MS_PER_SLEEP)
+end
 
 --[[
 Profiling result shows that the actions generally complete in <0.01 ms *Running time*
@@ -153,8 +172,10 @@ function lastKeyTime(key)
   return lastTs
 end
 
-function cdClick(key, cd, align)
+function cdClick(key, cd, align, clickFunc)
   -- align: 0, nil: unaligned; >0: align to the next point; <0: align to the previous point
+
+  clickFunc = clickFunc or click
 
   -- prioritize align in cd = {cd, align}
   if type(cd) == "table" then
@@ -172,7 +193,7 @@ function cdClick(key, cd, align)
   end
 
   if currTs - prevTs >= cd then
-    if not click(key) then
+    if not clickFunc(key) then
       return false
     end
     currTs = alignedTs(prevTs, currTs, align)
@@ -187,6 +208,7 @@ function checkCd(key, cd)
   return RTime() - last_key_time(key) >= cd
 end
 
+---- isOn functions ----
 
 function isOnCached(flag)
   if MODIFIER_ON_CACHE[flag] == nil then
@@ -206,6 +228,8 @@ end
 function isOff(flag)
   return not isOn(flag)
 end
+
+--- click functions ---
 
 function release(key)
   log("release", key, RTime())
@@ -281,6 +305,34 @@ function setOff(key)
     release(key)
   end
 end
+
+-- avoid functions
+GLOBAL_AVOID_MAP={}
+
+function globallyAvoid(key_or_func)
+  if GLOBAL_AVOID_MAP[key_or_func] == nil then
+    GLOBAL_AVOID_MAP[key_or_func] = 0
+  end
+  GLOBAL_AVOID_MAP[key_or_func] = GLOBAL_AVOID_MAP[key_or_func] + 1
+end
+
+function globallyUnavoid(key_or_func)
+  if GLOBAL_AVOID_MAP[key_or_func] ~= nil then
+    GLOBAL_AVOID_MAP[key_or_func] = GLOBAL_AVOID_MAP[key_or_func] - 1
+    if GLOBAL_AVOID_MAP[key_or_func] == 0 then
+      GLOBAL_AVOID_MAP[key_or_func] = nil
+    end
+  end
+end
+
+function clickAvoid(key_or_func)
+  if GLOBAL_AVOID_MAP[key_or_func] then
+    return false
+  end
+  return click(key_or_func)
+end
+
+-- classes
 
 Resource = {
   name = "",

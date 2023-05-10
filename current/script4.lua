@@ -18,8 +18,14 @@ function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
 function func_selector()
-  threads_dh_strafe2()
+  --threads_dh_strafe2()
+  --threads_test()
+  --testSubAction()
+  threads_wiz_meteor()
   mouse_move = false
+end
+
+function threads_test()
 end
 
 unpack = unpack or table.unpack
@@ -545,7 +551,7 @@ function CdAction:completeSubActions()
     return
   end
   while not self:subActionsAreDone() do
-    self:currentSubAction():Resume()
+    --self:currentSubAction():Resume()
     self:currentSubAction():Cleanup()
     self:nextSubAction()
   end
@@ -782,6 +788,7 @@ function runWithInsertedNoActions(actions, noActions, actionResource)
 end
 
 ProgramRunner = {
+  actionsEnabled = true,
   commonResources = {},
   programs = {},
   actions = {},
@@ -805,6 +812,10 @@ function ProgramRunner:new(o)
   setmetatable(o, self)
   self.__index = self
   return o
+end
+
+function ProgramRunner:actionsEnabledFunc()
+  return function() return self.actionsEnabled end
 end
 
 function ProgramRunner:AddCommonResource(r)
@@ -839,13 +850,13 @@ end
 function ProgramRunner:AddAction(p)
   p = self:Add(p)
   table.insert(self.actions, p)
+  p.isEnabledFunc = self:actionsEnabledFunc()
   return p
 end
 
 function ProgramRunner:AddHoldKey(p)
-  p = self:Add(p)
+  p = self:AddAction(p)
   p.holdTime = -1
-  table.insert(self.actions, p)
   return p
 end
 
@@ -883,12 +894,6 @@ function ProgramRunner:AddModEdgeTriggerChached(mod, upFunc, downFunc)
   return p
 end
 
-function ProgramRunner:AddSubAction(p)
-  p = self:Add(p)
-  p.onlyOnce = true
-  return p
-end
-
 function ProgramRunner:run()
   runPrograms(self.programs)
 end
@@ -896,6 +901,82 @@ end
 function ProgramRunner:runWithInsertedNoActions()
   runWithInsertedNoActions(self.actions, self.noActions, self.commonResources[1])
 end
+
+SubActionsMaker = {
+  afterMs = 0,
+  subActions = {},
+}
+
+function SubActionsMaker:new(o)
+  o = o or {}
+  if o.subActions == nil then
+    o.subActions = {}
+  end
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+function SubActionsMaker:Add(p)
+  p = CdAction:new(p)
+  table.insert(self.subActions, p)
+  p.onlyOnce = true
+  p.firstCycleOffset = self.afterMs
+  self.afterMs = 0
+  return p
+end
+
+function SubActionsMaker:After(ms)
+  self.afterMs = self.afterMs + ms
+  return self
+end
+
+function SubActionsMaker:Press(key)
+  self:Add{
+    key = key,
+    releaseFunc = doNothing,
+  }
+  return self
+end
+
+function SubActionsMaker:Release(key)
+  self:Add{
+    key = key,
+    pressFunc = doNothing,
+  }
+  return self
+end
+
+function SubActionsMaker:Click(key)
+  self:Add{
+    key = key,
+    pressFunc = click,
+    releaseFunc = doNothing,
+  }
+  return self
+end
+
+function SubActionsMaker:Hold(key, holdTime)
+  self:Add{
+    key = key,
+    holdTime = holdTime,
+  }
+  return self
+end
+
+function SubActionsMaker:Make(p)
+  p = p or {}
+  if p.pressFunc == nil then
+    p.pressFunc = doNothing
+  end
+  if p.releaseFunc == nil then
+    p.releaseFunc = doNothing
+  end
+  p.subActions = self.subActions
+  self.subActions = {}
+  return p
+end
+
 
 function ModIsOn(mod)
   local function func()
@@ -1011,9 +1092,9 @@ function threads_dh_strafe2()
     isEnabledFunc = ModIsOn("mouseleft"),
     onEnabledFunc = function(self)
       log("replaceML enabled")
+      enabled = false
       press1:Cleanup()
       press3:Cleanup()
-      enabled = false
     end,
 
     onDisabledFunc = function(self)
@@ -1047,53 +1128,70 @@ function threads_dh_strafe2()
   runner:runWithInsertedNoActions()
 end
 
-function testaBc()
+function testSubAction()
   local runner = ProgramRunner:new()
-  local subActions = ProgramRunner:new {}
+  local subActions = SubActionsMaker:new {}
   local action = runner:AddCommonResource { name = "action" }
 
-  local low = 0
-  local high = 10
-  local interrupt = 100
-
-  local clickA = subActions:AddSubAction {
-    key = "a",
-    holdTime = 700,
-    firstCycleOffset = 0,
-  }
-  subActions:AddSubAction {
-    key = "lshift",
-    holdTime = 0,
-    firstCycleOffset = 500,
-    releaseFunc = doNothing,
-  }
-  subActions:AddSubAction {
-    key = "b",
-    holdTime = 1000,
-    firstCycleOffset = 0,
-  }
-  subActions:AddSubAction {
-    key = "lshift",
-    holdTime = 0,
-    firstCycleOffset = 0,
-    pressFunc = doNothing,
-  }
-  subActions:AddSubAction {
-    key = "c",
-    holdTime = 1000,
-    firstCycleOffset = 500,
-  }
-  local click1234 = runner:Add {
+  runner:AddAction(subActions:Hold("a",700):After(500):Press("lshift"):Hold("b",1000):Release("lshift"):Hold("c",1000):Make{
     priority = 1,
     cycleTime = 5000,
-    pressFunc = doNothing,
-    releaseFunc = doNothing,
-    subActions = subActions.programs,
     firstCycleOffset = 500,
-  }
+  })
   local clickQ = runner:AddNoAction { key = "q", cycleTime = 100, }
 
   runner:run()
+end
+
+function threads_wiz_meteor()
+  cdClick("2", 120000)
+  cdClick("3", 120000)
+  cdClick("4", 120000)
+  local runner = ProgramRunner:new()
+  local action = runner:AddCommonResource { name = "action" }
+
+  local enabled = true
+  local function disabledWhenMoving()
+    return enabled
+  end
+
+  local subActions = SubActionsMaker:new {}
+  local clickML = subActions:Press("lshift"):After(50):Click("mouseleft"):After(25):Release("lshift"):Make{
+    priority = 2,
+    cycleTime = 5000,
+  }
+  clickML = runner:AddAction(clickML)
+
+  local press1 = runner:AddHoldKey {
+    priority = 1,
+    key = "1",
+  }
+
+  local replaceML = runner:AddNoAction {
+    priority = 100,
+    key = "backslash",
+    cycleTime = 200,
+
+    pressFunc = releaseAndPressML,
+
+    isEnabledFunc = ModIsOn("mouseleft"),
+    onEnabledFunc = function(self)
+      log("replaceML enabled")
+      runner.actionsEnabled = false
+      press1:Cleanup()
+      clickML:Cleanup()
+    end,
+
+    onDisabledFunc = function(self)
+      log("replaceML disabled")
+      release(self.key)
+      runner.actionsEnabled = true
+    end,
+  }
+
+  local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
+
+  runner:runWithInsertedNoActions()
 end
 
 last_release_switch = -1

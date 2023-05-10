@@ -24,7 +24,7 @@ end
 
 unpack = unpack or table.unpack
 function closure(func, ...)
-  local cArg = {...}
+  local cArg = { ... }
   return function()
     func(unpack(cArg))
   end
@@ -33,8 +33,8 @@ end
 function sleepExact(ms)
   local s = GetRunningTime()
   if ms > 200 then
-    Sleep(ms/2)
-    sleepExact(ms - (GetRunningTime()-s))
+    Sleep(ms / 2)
+    sleepExact(ms - (GetRunningTime() - s))
     return
   end
   local t = 0
@@ -62,15 +62,15 @@ function timeProfiling()
   i = 0
   local loops = 1
   while t + loops > RTime() do i = i + 1 end
-  GETTIME_PER_MS = i/loops
+  GETTIME_PER_MS = i / loops
   print("GETTIME_PER_MS", GETTIME_PER_MS)
 
   local sleeps = 10
   local start = RTime()
-  for _ = 1,sleeps do
+  for _ = 1, sleeps do
     Sleep(1)
   end
-  MS_PER_SLEEP = (RTime() - start)/sleeps
+  MS_PER_SLEEP = (RTime() - start) / sleeps
   print("MS_PER_SLEEP", MS_PER_SLEEP)
 end
 
@@ -162,7 +162,7 @@ MODIFIER_ON_CACHE = {}
 
 ---- cooldown click functions ----
 
-keyTimes={}
+keyTimes = {}
 function lastKeyTime(key)
   local lastTs = keyTimes[key]
   if (lastTs == nil) then
@@ -272,8 +272,8 @@ function click(target)
   return true
 end
 
-MIN_MOUSEWHEEL_INTERVAL=100
-lastMW=-MIN_MOUSEWHEEL_INTERVAL
+MIN_MOUSEWHEEL_INTERVAL = 100
+lastMW = -MIN_MOUSEWHEEL_INTERVAL
 function clickMW(key)
   local code = MOUSE_WHEELS[key]
   local t = RTime()
@@ -307,7 +307,7 @@ function setOff(key)
 end
 
 -- avoid functions
-GLOBAL_AVOID_MAP={}
+GLOBAL_AVOID_MAP = {}
 
 function globallyAvoid(key_or_func)
   if GLOBAL_AVOID_MAP[key_or_func] == nil then
@@ -955,7 +955,7 @@ end
 
 function threads_dh_strafe2()
   local runner = ProgramRunner:new()
-  local action = runner:AddCommonResource{name="action"}
+  local action = runner:AddCommonResource { name = "action" }
 
   local low = 0
   local high = 10
@@ -1001,7 +1001,7 @@ function threads_dh_strafe2()
       release("lshift")
     end,
   }
-  
+
   local replaceML = runner:AddNoAction {
     key = "backslash",
     cycleTime = 200,
@@ -1011,6 +1011,8 @@ function threads_dh_strafe2()
     isEnabledFunc = ModIsOn("mouseleft"),
     onEnabledFunc = function(self)
       log("replaceML enabled")
+      press1:Cleanup()
+      press3:Cleanup()
       enabled = false
     end,
 
@@ -1047,36 +1049,36 @@ end
 
 function testaBc()
   local runner = ProgramRunner:new()
-  local subActions = ProgramRunner:new{}
-  local action = runner:AddCommonResource{name="action"}
+  local subActions = ProgramRunner:new {}
+  local action = runner:AddCommonResource { name = "action" }
 
   local low = 0
   local high = 10
   local interrupt = 100
 
-  local clickA = subActions:AddSubAction{
+  local clickA = subActions:AddSubAction {
     key = "a",
     holdTime = 700,
     firstCycleOffset = 0,
   }
-  subActions:AddSubAction{
+  subActions:AddSubAction {
     key = "lshift",
     holdTime = 0,
     firstCycleOffset = 500,
     releaseFunc = doNothing,
   }
-  subActions:AddSubAction{
+  subActions:AddSubAction {
     key = "b",
     holdTime = 1000,
     firstCycleOffset = 0,
   }
-  subActions:AddSubAction{
+  subActions:AddSubAction {
     key = "lshift",
     holdTime = 0,
     firstCycleOffset = 0,
     pressFunc = doNothing,
   }
-  subActions:AddSubAction{
+  subActions:AddSubAction {
     key = "c",
     holdTime = 1000,
     firstCycleOffset = 500,

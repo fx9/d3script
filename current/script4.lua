@@ -784,6 +784,8 @@ end
 ProgramRunner = {
   commonResources = {},
   programs = {},
+  actions = {},
+  noActions = {},
 }
 
 function ProgramRunner:new(o)
@@ -793,6 +795,12 @@ function ProgramRunner:new(o)
   end
   if o.programs == nil then
     o.programs = {}
+  end
+  if o.actions == nil then
+    o.actions = {}
+  end
+  if o.noActions == nil then
+    o.noActions = {}
   end
   setmetatable(o, self)
   self.__index = self
@@ -828,9 +836,16 @@ function ProgramRunner:Add(p)
   return p
 end
 
+function ProgramRunner:AddAction(p)
+  p = self:Add(p)
+  table.insert(self.actions, p)
+  return p
+end
+
 function ProgramRunner:AddHoldKey(p)
   p = self:Add(p)
   p.holdTime = -1
+  table.insert(self.actions, p)
   return p
 end
 
@@ -839,6 +854,7 @@ function ProgramRunner:AddNoAction(p)
   p.holdTime = 0
   p.pressFunc = click
   p.releaseFunc = doNothing
+  table.insert(self.noActions, p)
   return p
 end
 
@@ -853,6 +869,7 @@ function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
   p.isEnabled = not isEnabledFunc() -- use flipped isEnabled to ensure upFunc/downFunc called immediately
   p.onEnabledFunc = upFunc
   p.onDisabledFunc = downFunc
+  table.insert(self.noActions, p)
   return p
 end
 
@@ -874,6 +891,10 @@ end
 
 function ProgramRunner:run()
   runPrograms(self.programs)
+end
+
+function ProgramRunner:runWithInsertedNoActions()
+  runWithInsertedNoActions(self.actions, self.noActions, self.commonResources[1])
 end
 
 function ModIsOn(mod)
@@ -945,46 +966,22 @@ function threads_dh_strafe2()
     return enabled
   end
 
-  local click2 = runner:AddNoAction { key = "2", cycleTime = 4200, }
-  local click4 = runner:AddNoAction { key = "4", cycleTime = 500, align = -500, }
-  local clickMR = runner:AddNoAction { key = "mouseright", cycleTime = 500, }
-  local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
-
-  local replaceML = runner:AddNoAction {
-    key = "backslash",
-    cycleTime = 200,
-
-    pressFunc = releaseAndPressML,
-
-    isEnabledFunc = ModIsOn("mouseleft"),
-    onEnabledFunc = function(self)
-      log("replaceML enabled")
-      enabled = false
-    end,
-
-    onDisabledFunc = function(self)
-      log("replaceML disabled")
-      release(self.key)
-      enabled = true
-    end,
-  }
-
   local press1Time = 340
-  local press1MoreTime = 2300
-  local press3Time = 200
+  local press1MoreTime = 1800
+  local press3Time = 225
   local total13Time = press1MoreTime + press3Time
 
-  local press1 = runner:Add {
+  local press1 = runner:AddAction {
     priority = 1,
     key = "1",
     cycleTime = total13Time,
     holdTime = press1MoreTime,
 
-    firstCycleOffset = 100,
+    firstCycleOffset = 200,
     isEnabledFunc = disabledWhenMoving,
   }
 
-  local press3 = runner:Add {
+  local press3 = runner:AddAction {
     priority = high,
     key = "3",
     cycleTime = total13Time,
@@ -1004,6 +1001,30 @@ function threads_dh_strafe2()
       release("lshift")
     end,
   }
+  
+  local replaceML = runner:AddNoAction {
+    key = "backslash",
+    cycleTime = 200,
+
+    pressFunc = releaseAndPressML,
+
+    isEnabledFunc = ModIsOn("mouseleft"),
+    onEnabledFunc = function(self)
+      log("replaceML enabled")
+      enabled = false
+    end,
+
+    onDisabledFunc = function(self)
+      log("replaceML disabled")
+      release(self.key)
+      enabled = true
+    end,
+  }
+
+  local click2 = runner:AddNoAction { key = "2", cycleTime = 4200, }
+  local click4 = runner:AddNoAction { key = "4", cycleTime = 500, }
+  local clickMR = runner:AddNoAction { key = "mouseright", cycleTime = 500, }
+  local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
 
   local function press1More()
     press1.holdTime = press1MoreTime
@@ -1021,7 +1042,7 @@ function threads_dh_strafe2()
 
   local speedControl = runner:AddModEdgeTriggerChached("capslock", press1Less, press1More)
 
-  runner:run()
+  runner:runWithInsertedNoActions()
 end
 
 function testaBc()

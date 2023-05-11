@@ -295,6 +295,7 @@ end
 
 Resource = {
   name = "",
+  blocked = false,
   program = nil,
   onRelease = nil, -- func() to call on resource release.
 }
@@ -304,6 +305,16 @@ function Resource:new(o)
   setmetatable(o, self)
   self.__index = self
   return o
+end
+
+function Resource:block()
+  if self.blocked then return end
+  self:removeOwner()
+  self.blocked = true
+end
+
+function Resource:unblock()
+  self.blocked = false
 end
 
 function Resource:removeOwner()
@@ -316,10 +327,6 @@ end
 
 function Resource:isOwnedBy(program)
   return self.program == program
-end
-
-function Resource:isFree()
-  return self.program == nil
 end
 
 function Resource:acquire(program, onRelease)
@@ -335,14 +342,7 @@ function Resource:acquire(program, onRelease)
 end
 
 function Resource:canAcquire(program)
-  return self:isFree() or self:isOwnedBy(program) or self.program.priority < program.priority
-end
-
-function Resource:programKey()
-  if self:isFree() then
-    return "nil"
-  end
-  return self.program.key
+  return (not self.blocked) and (self.program == nil or self:isOwnedBy(program) or self.program.priority < program.priority)
 end
 
 function doNothing(...)
@@ -505,7 +505,7 @@ end
 function CdAction:acquireAllResources()
   --log("acquireAllResources", self.key)
   for i, rsc in ipairs(self.resources) do
-    --logif(self.key == "a", "resource", rsc.name, rsc:programKey())
+    --logif(self.key == "a", "resource", rsc.name)
     if not rsc:canAcquire(self) then
       return false
     end
@@ -804,6 +804,16 @@ end
 
 function SubActionsMaker:Hold(key, holdTime)
   self:Add { key = key, holdTime = holdTime, }
+  return self
+end
+
+function SubActionsMaker:Block(resource)
+  self:Add { key = resource, pressFunc = function(r) r:block() end, releaseFunc = doNothing, }
+  return self
+end
+
+function SubActionsMaker:Unblock(resource)
+  self:Add { key = resource, pressFunc = doNothing, releaseFunc = function(r) r:unblock() end, }
   return self
 end
 

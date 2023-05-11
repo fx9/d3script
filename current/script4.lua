@@ -418,7 +418,7 @@ end
 
 function CdAction:new(o)
   o = o or {}
-  o.resources =o.resources or {}
+  o.resources = o.resources or {}
   o.subActions = o.subActions or {}
   setmetatable(o, self)
   self.__index = self
@@ -654,7 +654,7 @@ function runPrograms(actions)
 end
 
 ProgramRunner = {
-  actionResource = Resource:new{ name = "action" },
+  actionResource = Resource:new { name = "action" },
   programs = {},
 }
 
@@ -702,7 +702,7 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
     cycleTime = 200,
     pressFunc = releaseAndPressML,
     releaseFunc = doNothing,
-    isEnabledFunc = ModIsOn( "mouseleft"),
+    isEnabledFunc = ModIsOn("mouseleft"),
     onEnabledFunc = function(self2)
       log("replaceML enabled")
       self2.enableBlockedActions = false
@@ -722,8 +722,8 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
   p.blockedActionsIsEnabledFunc = function() return p.enableBlockedActions end
 
   for i, action in ipairs(p.blockedActions) do
-    if action.isEnabledFunc ==nil then
-      action.isEnabledFunc  = p.blockedActionsIsEnabledFunc
+    if action.isEnabledFunc == nil then
+      action.isEnabledFunc = p.blockedActionsIsEnabledFunc
     else
       local existing = action.isEnabledFunc
       action.isEnabledFunc = function()
@@ -736,7 +736,7 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
 end
 
 function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
-  local p = self:Add{
+  local p = self:Add {
     holdTime = -1,
     pressFunc = doNothing,
     releaseFunc = doNothing,
@@ -878,14 +878,13 @@ function threads_dh_strafe2()
   local runner = ProgramRunner:new()
   local subActions = SubActionsMaker:new()
 
-
   local press1Time = 340
   local press1MoreTime = 1800
   local press3Time = 225
   local total13Time = press1MoreTime + press3Time
 
   local press31 = runner:AddAction(
-    subActions:Press("lshift"):Hold("3",press3Time):Click("mouseleft"):Release("lshift"):Hold("1",press1MoreTime):Make()
+          subActions:Press("lshift"):Hold("3", press3Time):Click("mouseleft"):Release("lshift"):Hold("1", press1MoreTime):Make()
   )
 
   local function press1More()
@@ -896,53 +895,7 @@ function threads_dh_strafe2()
     press31.subActions[#press31.subActions].holdTime = press1Time
   end
 
---[[
-
-  local press1 = runner:AddAction {
-    priority = 1,
-    key = "1",
-    cycleTime = total13Time,
-    holdTime = press1MoreTime,
-
-    firstCycleOffset = 100,
-  }
-
-  local press3 = runner:AddAction {
-    priority = 10,
-    key = "3",
-    cycleTime = total13Time,
-    holdTime = press3Time,
-
-    pressFunc = function(key)
-      press("3")
-      press("lshift")
-    end,
-    releaseFunc = function(key)
-      release("3")
-      if isOff("mouseleft") then
-        click("mouseleft")
-      end
-      release("lshift")
-    end,
-  }
-
-  local function press1More()
-    press1.holdTime = press1MoreTime
-    press1.cycleTime = press3Time + press1MoreTime
-    press3.cycleTime = press3Time + press1MoreTime
-    press1:Init()
-    press3:Init()
-  end
-
-  local function press1Less()
-    press1.holdTime = press1Time
-    press1.cycleTime = press3Time + press1Time
-    press3.cycleTime = press3Time + press1Time
-  end
-
-]]
-
-  local replaceML = runner:AddReplaceMouseLeft("backslash", {press31})
+  local replaceML = runner:AddReplaceMouseLeft("backslash", { press31 })
   local click2 = runner:AddClick { key = "2", cycleTime = 4200, }
   local click4 = runner:AddClick { key = "4", cycleTime = 500, }
   local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
@@ -957,7 +910,7 @@ function testSubAction()
   local runner = ProgramRunner:new()
   local subActions = SubActionsMaker:new {}
 
-  runner:AddAction(subActions:Hold("a",700):After(500):Press("lshift"):Hold("b",1000):Release("lshift"):Hold("c",1000):Make{
+  runner:AddAction(subActions:Hold("a", 700):After(500):Press("lshift"):Hold("b", 1000):Release("lshift"):Hold("c", 1000):Make {
     priority = 1,
     cycleTime = 5000,
     firstCycleOffset = 500,
@@ -979,7 +932,7 @@ function threads_wiz_meteor()
   end
 
   local subActions = SubActionsMaker:new {}
-  local clickML = subActions:Press("lshift"):After(50):Click("mouseleft"):After(25):Release("lshift"):Make{
+  local clickML = subActions:Press("lshift"):After(50):Click("mouseleft"):After(25):Release("lshift"):Make {
     priority = 2,
     cycleTime = 5000,
   }

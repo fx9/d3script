@@ -12,7 +12,7 @@ function myprint(msg, arg1, arg2)
 end
 print = myprint
 
-DEBUG = true
+DEBUG = false
 LOOP_DELAY = 1
 function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
@@ -880,7 +880,7 @@ function threads_dh_strafe2()
 
   local press1Time = 340
   local press1MoreTime = 1800
-  local press3Time = 225
+  local press3Time = 200
   local total13Time = press1MoreTime + press3Time
 
   local press31 = runner:AddAction(
@@ -904,6 +904,8 @@ function threads_dh_strafe2()
   local speedControl = runner:AddModEdgeTriggerCached("capslock", press1Less, press1More)
 
   runner:run()
+  release("backslash")
+  release("lshift")
 end
 
 function testSubAction()

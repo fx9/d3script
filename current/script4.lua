@@ -18,10 +18,10 @@ function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
 function func_selector()
-  threads_dh_strafe2()
+  --threads_dh_strafe2()
   --threads_test()
   --testSubAction()
-  --threads_wiz_meteor()
+  threads_wiz_meteor()
   mouse_move = false
 end
 
@@ -945,7 +945,7 @@ function threads_wiz_meteor()
     key = "1",
   }
 
-  local replaceML = runner:AddReplaceMouseLeft("backslash")
+  local replaceML = runner:AddReplaceMouseLeft("backslash", {press1, clickML})
   local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   runner:run()

@@ -12,28 +12,20 @@ function myprint(msg, arg1, arg2)
 end
 print = myprint
 
-DEBUG = false
+DEBUG = true
 LOOP_DELAY = 1
 function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
 function func_selector()
-  --threads_dh_strafe2()
+  threads_dh_strafe2()
   --threads_test()
   --testSubAction()
-  threads_wiz_meteor()
+  --threads_wiz_meteor()
   mouse_move = false
 end
 
 function threads_test()
-end
-
-unpack = unpack or table.unpack
-function closure(func, ...)
-  local cArg = { ... }
-  return function()
-    func(unpack(cArg))
-  end
 end
 
 function sleepExact(ms)
@@ -434,6 +426,11 @@ function CdAction:new(o)
 end
 
 function CdAction:AddResource(r)
+  for i, rsc in ipairs(self.resources) do
+    if rsc == r then
+      return self
+    end
+  end
   table.insert(self.resources, r)
   return self
 end
@@ -637,7 +634,6 @@ end
 function CdAction:Cleanup()
   self:releaseKey()
   self:releaseResources()
-  -- self.co = nil
 end
 
 function updateModCache()
@@ -646,7 +642,7 @@ function updateModCache()
   end
 end
 
-function runProgramsSimple(actions)
+function runPrograms(actions)
   for i, p in ipairs(actions) do p:Init() end
   while true do
     Sleep(LOOP_DELAY)
@@ -657,122 +653,87 @@ function runProgramsSimple(actions)
   for i, p in ipairs(actions) do p:Cleanup() end
 end
 
-function runWithInsertedNoActions(actions, noActions, actionResource)
-  for i, p in ipairs(actions) do p:Init() end
-  for i, p in ipairs(noActions) do p:Init() end
-
-  local noActionsExecuted = false
-  while true do
-    Sleep(LOOP_DELAY)
-    updateModCache()
-
-    noActionsExecuted = false
-    for i, action in ipairs(actions) do
-      if not noActionsExecuted and actionResource:isFree() then
-        for j, noAction in ipairs(noActions) do noAction:Resume() end
-        noActionsExecuted = true
-      end
-      action:Resume()
-    end
-
-    if not noActionsExecuted then
-      for j, noAction in ipairs(noActions) do noAction:Resume() end
-    end
-
-    if isOff("scrolllock") then
-      break
-    end
-  end
-
-  for i, p in ipairs(actions) do p:Cleanup() end
-  for i, p in ipairs(noActions) do p:Cleanup() end
-end
-
 ProgramRunner = {
-  actionsEnabled = true,
-  commonResources = {},
+  actionResource = Resource:new{ name = "action" },
   programs = {},
-  actions = {},
-  noActions = {},
 }
 
 function ProgramRunner:new(o)
   o = o or {}
-  o.commonResources = o.commonResources or {}
   o.programs = o.programs or {}
-  o.actions = o.actions or {}
-  o.noActions = o.noActions or {}
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
-function ProgramRunner:actionsEnabledFunc()
-  return function() return self.actionsEnabled end
-end
-
-function ProgramRunner:AddCommonResource(r)
-  r = r or {}
-  r = Resource:new(r)
-  table.insert(self.commonResources, r)
-  return r
-end
-
 function ProgramRunner:Add(p)
-  p = p or {}
-  local resources = p.resources
   p = CdAction:new(p)
   table.insert(self.programs, p)
-  if resources == nil then
-    for i, rsc in ipairs(self.commonResources) do
-      p:AddResource(rsc)
-    end
-  end
   return p
 end
 
 function ProgramRunner:AddAction(p)
   p = self:Add(p)
-  table.insert(self.actions, p)
-  p.isEnabledFunc = self:actionsEnabledFunc()
+  p:AddResource(self.actionResource)
   return p
 end
 
 function ProgramRunner:AddHoldKey(p)
+  p = p or {}
+  p.holdTime = p.holdTime or -1
   p = self:AddAction(p)
-  p.holdTime = -1
   return p
 end
 
-function ProgramRunner:AddNoAction(p)
+function ProgramRunner:AddClick(p)
+  p = p or {}
+  p.holdTime = p.holdTime or 0
+  p.pressFunc = p.pressFunc or click
+  p.releaseFunc = p.releaseFunc or doNothing
   p = self:Add(p)
-  p.holdTime = 0
-  p.pressFunc = click
-  p.releaseFunc = doNothing
-  table.insert(self.noActions, p)
   return p
 end
 
-function ProgramRunner:AddReplaceMouseLeft(replaceKey)
-  return runner:AddNoAction {
-    priority = 100,
+function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
+  p = self:Add {
+    blockedActions = blockedActions or {},
+    enableBlockedActions = true,
     key = replaceKey,
     cycleTime = 200,
     pressFunc = releaseAndPressML,
-    isEnabledFunc = closure(isOn, "mouseleft"),
+    releaseFunc = doNothing,
+    isEnabledFunc = ModIsOn( "mouseleft"),
     onEnabledFunc = function(self2)
       log("replaceML enabled")
-      enabled = false
-      for i, p in ipairs(self.actions) do p:Cleanup() end
+      self2.enableBlockedActions = false
+      for i, p in ipairs(self2.blockedActions) do p:Cleanup() end
     end,
     onDisabledFunc = function(self2)
       log("replaceML disabled")
-      release(self2.key) -- this is a noAction and "release" is not called on cleanup
-      enabled = true
+      release(self2.key)
+      self2.enableBlockedActions = true
+    end,
+    Cleanup = function(self2)
+      release(self2.key)
+      self2:releaseKey()
+      self2:releaseResources()
     end,
   }
-end
+  p.blockedActionsIsEnabledFunc = function() return p.enableBlockedActions end
 
+  for i, action in ipairs(p.blockedActions) do
+    if action.isEnabledFunc ==nil then
+      action.isEnabledFunc  = p.blockedActionsIsEnabledFunc
+    else
+      local existing = action.isEnabledFunc
+      action.isEnabledFunc = function()
+        return existing() and p.enableBlockedActions
+      end
+    end
+  end
+
+  return p
+end
 
 function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
   local p = self:Add{
@@ -784,24 +745,19 @@ function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
     onEnabledFunc = upFunc,
     onDisabledFunc = downFunc,
   }
-  table.insert(self.noActions, p)
   return p
 end
 
 function ProgramRunner:AddModEdgeTrigger(mod, upFunc, downFunc)
-  return self:AddEdgeTrigger(closure(isOn,mod), upFunc, downFunc)
+  return self:AddEdgeTrigger(ModIsOn(mod), upFunc, downFunc)
 end
 
-function ProgramRunner:AddModEdgeTriggerChached(mod, upFunc, downFunc)
-  return self:AddEdgeTrigger(closure(isOnCached,mod), upFunc, downFunc)
-end
-
-function ProgramRunner:runSimple()
-  runProgramsSimple(self.programs)
+function ProgramRunner:AddModEdgeTriggerCached(mod, upFunc, downFunc)
+  return self:AddEdgeTrigger(ModIsOnCached(mod), upFunc, downFunc)
 end
 
 function ProgramRunner:run()
-  runWithInsertedNoActions(self.actions, self.noActions, self.commonResources[1])
+  runPrograms(self.programs)
 end
 
 SubActionsMaker = {
@@ -860,6 +816,34 @@ function SubActionsMaker:Make(p)
   return p
 end
 
+function ModIsOn(mod)
+  local function func()
+    return isOn(mod)
+  end
+  return func
+end
+
+function ModIsOff(mod)
+  local function func()
+    return isOff(mod)
+  end
+  return func
+end
+
+function ModIsOnCached(mod)
+  local function func()
+    return isOnCached(mod)
+  end
+  return func
+end
+
+function ModIsOffCached(mod)
+  local function func()
+    return isOffCached(mod)
+  end
+  return func
+end
+
 --[[
 function ModOnCacheMatchesMap(modOnMap)
   local function func()
@@ -887,12 +871,11 @@ function releaseAndPressML(replaceKey)
     press("lshift")
   end
   press("mouseleft")
-  Sleep(1)
+  --Sleep(1)
 end
 
 function threads_dh_strafe2()
   local runner = ProgramRunner:new()
-  local action = runner:AddCommonResource { name = "action" }
 
   local press1Time = 340
   local press1MoreTime = 1800
@@ -920,18 +903,18 @@ function threads_dh_strafe2()
     end,
     releaseFunc = function(key)
       release("3")
-      if runner.actionsEnabled then
+      if isOff("mouseleft") then
         click("mouseleft")
       end
       release("lshift")
     end,
   }
 
-  local replaceML = runner:AddReplaceMouseLeft("backslash")
-  local click2 = runner:AddNoAction { key = "2", cycleTime = 4200, }
-  local click4 = runner:AddNoAction { key = "4", cycleTime = 500, }
-  local clickMR = runner:AddNoAction { key = "mouseright", cycleTime = 500, }
-  local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
+  local replaceML = runner:AddReplaceMouseLeft("backslash", {press1, press3})
+  local click2 = runner:AddClick { key = "2", cycleTime = 4200, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   local function press1More()
     press1.holdTime = press1MoreTime
@@ -947,7 +930,7 @@ function threads_dh_strafe2()
     press3.cycleTime = press3Time + press1Time
   end
 
-  local speedControl = runner:AddModEdgeTriggerChached("capslock", press1Less, press1More)
+  local speedControl = runner:AddModEdgeTriggerCached("capslock", press1Less, press1More)
 
   runner:run()
 end
@@ -955,14 +938,13 @@ end
 function testSubAction()
   local runner = ProgramRunner:new()
   local subActions = SubActionsMaker:new {}
-  local action = runner:AddCommonResource { name = "action" }
 
   runner:AddAction(subActions:Hold("a",700):After(500):Press("lshift"):Hold("b",1000):Release("lshift"):Hold("c",1000):Make{
     priority = 1,
     cycleTime = 5000,
     firstCycleOffset = 500,
   })
-  local clickQ = runner:AddNoAction { key = "q", cycleTime = 100, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 100, }
 
   runner:run()
 end
@@ -972,7 +954,6 @@ function threads_wiz_meteor()
   cdClick("3", 120000)
   cdClick("4", 120000)
   local runner = ProgramRunner:new()
-  local action = runner:AddCommonResource { name = "action" }
 
   local enabled = true
   local function disabledWhenMoving()
@@ -992,7 +973,7 @@ function threads_wiz_meteor()
   }
 
   local replaceML = runner:AddReplaceMouseLeft("backslash")
-  local clickQ = runner:AddNoAction { key = "q", cycleTime = 500, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   runner:run()
 end

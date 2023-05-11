@@ -876,11 +876,27 @@ end
 
 function threads_dh_strafe2()
   local runner = ProgramRunner:new()
+  local subActions = SubActionsMaker:new()
+
 
   local press1Time = 340
   local press1MoreTime = 1800
   local press3Time = 225
   local total13Time = press1MoreTime + press3Time
+
+  local press31 = runner:AddAction(
+    subActions:Press("lshift"):Hold("3",press3Time):Click("mouseleft"):Release("lshift"):Hold("1",press1MoreTime):Make()
+  )
+
+  local function press1More()
+    press31.subActions[#press31.subActions].holdTime = press1MoreTime
+  end
+
+  local function press1Less()
+    press31.subActions[#press31.subActions].holdTime = press1Time
+  end
+
+--[[
 
   local press1 = runner:AddAction {
     priority = 1,
@@ -910,12 +926,6 @@ function threads_dh_strafe2()
     end,
   }
 
-  local replaceML = runner:AddReplaceMouseLeft("backslash", {press1, press3})
-  local click2 = runner:AddClick { key = "2", cycleTime = 4200, }
-  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
-  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
-  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
-
   local function press1More()
     press1.holdTime = press1MoreTime
     press1.cycleTime = press3Time + press1MoreTime
@@ -929,6 +939,14 @@ function threads_dh_strafe2()
     press1.cycleTime = press3Time + press1Time
     press3.cycleTime = press3Time + press1Time
   end
+
+]]
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", {press31})
+  local click2 = runner:AddClick { key = "2", cycleTime = 4200, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   local speedControl = runner:AddModEdgeTriggerCached("capslock", press1Less, press1More)
 

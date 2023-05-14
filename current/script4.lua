@@ -10,6 +10,7 @@ function myprint(msg, arg1, arg2)
   if arg1 ~= nil then return OLM("%s: %s\n", tostring(msg), tostring(arg1)) end
   OLM("%s\n", tostring(msg))
 end
+IN_PROD = (PlayMacro ~= nil)
 print = myprint
 
 DEBUG = false
@@ -61,7 +62,7 @@ function timeProfiling()
   local loops = 1
   while t + loops > RTime() do i = i + 1 end
   GETTIME_PER_MS = i / loops
-  print("GETTIME_PER_MS", GETTIME_PER_MS)
+  myprint("GETTIME_PER_MS", GETTIME_PER_MS)
 
   local sleeps = 10
   local start = RTime()
@@ -69,7 +70,7 @@ function timeProfiling()
     Sleep(1)
   end
   MS_PER_SLEEP = (RTime() - start) / sleeps
-  print("MS_PER_SLEEP", MS_PER_SLEEP)
+  myprint("MS_PER_SLEEP", MS_PER_SLEEP)
 end
 
 --[[
@@ -703,6 +704,7 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
     pressFunc = releaseAndPressML,
     releaseFunc = doNothing,
     isEnabledFunc = ModIsOn("mouseleft"),
+    isEnabled = false,
     onEnabledFunc = function(self2)
       log("replaceML enabled")
       self2.enableBlockedActions = false
@@ -741,7 +743,7 @@ function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
     pressFunc = doNothing,
     releaseFunc = doNothing,
     isEnabledFunc = isEnabledFunc,
-    isEnabled = not isEnabledFunc(), -- use flipped isEnabled to ensure upFunc/downFunc called immediately
+    isEnabled = false,
     onEnabledFunc = upFunc,
     onDisabledFunc = downFunc,
   }

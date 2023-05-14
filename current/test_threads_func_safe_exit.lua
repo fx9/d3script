@@ -1,29 +1,32 @@
 
-dofile("test_util.lua")
-dofile("script4.lua")
+dofile("current\\test_util.lua")
+dofile("current\\script4.lua")
 TEST_OUTPUT = false
 
 function test_threads_func_safe_exit(func)
+  print("test1: ScrollLock clicked with mouseleft holding")
   mockRuntime:Setup({
     testUtil.click("scrolllock",0),
     testUtil.press("mouseleft",1000),
     testUtil.click("scrolllock",2000),
   })
-  threads_wiz_meteor()
+  func()
   mockRuntime:release("mouseleft")
   mockRuntime:validate()
   
+  print("test2: ScrollLock normally clicked")
   mockRuntime:Setup({
     testUtil.click("scrolllock",0),
     testUtil.press("mouseleft",3000),
     testUtil.release("mouseleft",3000),
     testUtil.click("scrolllock",5000),
   })
-  threads_wiz_meteor()
+  func()
   mockRuntime:validate()
 
+  print("test3: ScrollLock not clicked")
   mockRuntime:Setup({})
-  threads_wiz_meteor()
+  func()
   mockRuntime:validate()
 end
 

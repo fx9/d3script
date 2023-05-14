@@ -191,8 +191,18 @@ end
 
 --- click functions ---
 
+PRESS_SAFEGUARD={}
+function exitReleaseAll()
+  for k, v in pairs(PRESS_SAFEGUARD) do
+    if v then
+      release(k)
+    end
+  end
+end
+
 function release(key)
   log("release", key, RTime())
+  PRESS_SAFEGUARD[key] = nil
   if MOUSE_KEYS[key] ~= nil then
     ReleaseMouseButton(MOUSE_KEYS[key])
   elseif MOUSE_WHEELS[key] == nil then
@@ -202,6 +212,7 @@ end
 
 function press(key)
   log("press", key, RTime())
+  PRESS_SAFEGUARD[key] = 1
   if MOUSE_KEYS[key] ~= nil then
     PressMouseButton(MOUSE_KEYS[key])
   elseif MOUSE_WHEELS[key] ~= nil then
@@ -962,7 +973,7 @@ function threads_wiz_meteor()
   runner:run()
 end
 
-last_release_switch = -1
+last_release_switch = -9999
 function OnEvent(event, arg)
   OutputLogMessage("event = %s, arg = %s\n", event, arg)
   --OutputLogMessage("time = %s event = %s, arg = %s\n", GetRunningTime(), event, arg)
@@ -971,7 +982,7 @@ function OnEvent(event, arg)
 
   local funcs = {
     [8] = func_selector,
-    [6] = func_selector,
+    [9] = func_selector,
   }
   if (funcs[arg] ~= nil) then
     if (event == "MOUSE_BUTTON_PRESSED") then
@@ -979,6 +990,7 @@ function OnEvent(event, arg)
         return
       end
       funcs[arg]()
+      exitReleaseAll()
     end
     if (event == "MOUSE_BUTTON_RELEASED") then
       last_release_switch = GetRunningTime()

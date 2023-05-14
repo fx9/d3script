@@ -44,11 +44,13 @@ mockRuntime = {
 
   Setup = function(self, script)
     local lastItem = script[#script]
+    --[[
     if lastItem == nil then
       table.insert(script, testUtil.click("scrolllock", 1000))
     elseif lastItem.key ~= "scrolllock" then
       table.insert(script, testUtil.click("scrolllock", lastItem.time + 1000))
     end
+    --]]
     self.script = script
     self.scriptIndex = 1
     

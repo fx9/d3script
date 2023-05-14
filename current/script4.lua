@@ -540,15 +540,14 @@ end
 
 function CdAction:releaseKey()
   -- log("releaseKey", "key", self.key)
-  if not self:pressed() then
-    return
+  if self:pressed() or self.pressFunc == doNothing then
+    self.releaseFunc(self.key)
+    self.pressTs = -1
   end
+  self:completeSubActions()
   if self:holdIsDone() then
     self.clickDone = true
   end
-  self:completeSubActions()
-  self.releaseFunc(self.key)
-  self.pressTs = -1
 end
 
 function CdAction:releaseResources()

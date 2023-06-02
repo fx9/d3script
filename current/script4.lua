@@ -20,13 +20,43 @@ function logif(condition, msg, name, value) return condition and log(msg, name, 
 
 function func_selector()
   --threads_dh_strafe2()
-  --threads_test()
+  threads_test()
   --testSubAction()
-  threads_wiz_meteor()
+  --threads_wiz_meteor()
+  --threads_dh_cluster()
+  --threads_dh_trap()
+  --threads_cru_test()
   mouse_move = false
 end
 
 function threads_test()
+  local runner = ProgramRunner:new()
+  local subActions = SubActionsMaker:new()
+
+  local attack1Time=600
+  local press1Time = 200
+  local attack2Time=600
+  local press2Time = 200
+
+  local press12 = runner:AddAction(
+          subActions:Hold("1", press1Time):After(attack1Time -press1Time)
+                  :Hold("1", press1Time):After(attack1Time -press1Time)
+                  :Hold("1", press1Time):Hold("2", press2Time):After(attack2Time -press2Time):DoNothing():Make()
+  )
+  press12.subActions[1]:AddResource(runner.actionResource)
+  press12.subActions[2]:AddResource(runner.actionResource)
+  press12.subActions[3]:AddResource(runner.actionResource)
+  press12.subActions[4]:AddResource(runner.actionResource)
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  local click4 = runner:AddClick { firstCycleOffset=6500, key = "4", cycleTime = 500, }
+  local clickF = runner:AddClick { key = "f", cycleTime = 500, }
+
+  local replaceML = runner:AddReplaceMouseLeft("", { }, true)
+  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  --local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  runner:run()
 end
 
 function sleepExact(ms)
@@ -705,7 +735,7 @@ function ProgramRunner:AddClick(p)
   return p
 end
 
-function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
+function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions, blockActionResource)
   p = self:Add {
     blockedActions = blockedActions or {},
     enableBlockedActions = true,
@@ -719,14 +749,24 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions)
       log("replaceML enabled")
       self2.enableBlockedActions = false
       for i, p in ipairs(self2.blockedActions) do p:Cleanup() end
+      if blockActionResource then
+        self.actionResource:block()
+      end
     end,
     onDisabledFunc = function(self2)
       log("replaceML disabled")
-      release(self2.key)
+      if self2.key ~= "" then
+        release(self2.key)
+      end
       self2.enableBlockedActions = true
+      if blockActionResource then
+        self.actionResource:unblock()
+      end
     end,
     Cleanup = function(self2)
-      release(self2.key)
+      if self2.key ~= "" then
+        release(self2.key)
+      end
       self2:releaseKey()
       self2:releaseResources()
     end,
@@ -829,6 +869,11 @@ function SubActionsMaker:Unblock(resource)
   return self
 end
 
+function SubActionsMaker:DoNothing()
+  self:Add { pressFunc = doNothing, releaseFunc = doNothing, }
+  return self
+end
+
 function SubActionsMaker:Make(p)
   p = p or {}
   p.pressFunc = p.pressFunc or doNothing
@@ -880,7 +925,7 @@ function ModOnCacheMatchesMap(modOnMap)
 end
 --]]
 
-function releaseAndPressML(replaceKey)
+function releaseAndPressMLRepressShift(replaceKey)
   local lshiftOn = false
   if isOn("lshift") then
     lshiftOn = true
@@ -891,6 +936,21 @@ function releaseAndPressML(replaceKey)
   press(replaceKey)
   if lshiftOn then
     press("lshift")
+  end
+  press("mouseleft")
+  --Sleep(1)
+end
+
+function releaseAndPressML(replaceKey)
+  if isOn("lshift") then
+    release("lshift")
+  end
+  if replaceKey ~= "" then
+    release(replaceKey)
+  end
+  release("mouseleft")
+  if replaceKey ~= "" then
+    press(replaceKey)
   end
   press("mouseleft")
   --Sleep(1)
@@ -968,6 +1028,63 @@ function threads_wiz_meteor()
   }
 
   local replaceML = runner:AddReplaceMouseLeft("backslash", {press1, clickML})
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  runner:run()
+end
+
+function threads_dh_cluster()
+  local runner = ProgramRunner:new()
+
+  local press1 = runner:AddHoldKey {
+    priority = 1,
+    key = "1",
+  }
+  local click3 = runner:AddClick { priority = 2, key = "3", cycleTime = 3000, }
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", { press1, click3 })
+  local click2 = runner:AddClick { key = "2", cycleTime = 8000, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  runner:run()
+end
+
+function threads_dh_trap()
+  local runner = ProgramRunner:new()
+
+  local press1 = runner:AddHoldKey {
+    priority = 1,
+    key = "1",
+  }
+  local click3 = runner:AddClick { priority = 2, key = "3", cycleTime = 1500, }
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", { press1, click3 })
+  local click2 = runner:AddClick { key = "2", cycleTime = 5000, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 6000, }
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  runner:run()
+end
+
+function threads_cru_test()
+  local runner = ProgramRunner:new()
+  local subActions = SubActionsMaker:new()
+
+  local totalTime = 2500
+  local press1Time = 200
+  local press2Time = 200
+
+  local press1T2T = runner:AddAction(
+          subActions:Hold("2", press2Time):Hold("T", 800 - press2Time):Hold("1", press1Time):Hold("T", 1700 - press1Time):Make()
+  )
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 600, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", { press1T2T, click4 })
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
   local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   runner:run()

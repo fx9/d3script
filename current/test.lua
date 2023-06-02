@@ -12,7 +12,7 @@ OnEvent("MOUSE_BUTTON_PRESSED",8)
 mockRuntime:validate()
 
 mockRuntime:Setup({})
-threads_wiz_meteor()
+threads_test()
 mockRuntime:validate()
 
 print("This is the end of test.")

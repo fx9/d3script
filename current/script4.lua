@@ -29,16 +29,17 @@ function func_selector()
   mouse_move = false
 end
 
-function threads_test()
+function threads_d4_rogue_imbue()
   local runner = ProgramRunner:new()
   local subActions = SubActionsMaker:new()
 
-  local attack1Time= 516
+  local attack1Time= 490
   local press1Time = 220
-  local press2Time = press1Time
+  local press2Time = 100
+  local press2Delay = 100
 
 
-  local imbueCd=11560
+  local imbueCd=9860
   local imbueKeys = {"3","3","","4","4"}
   local currImbue = 1
   local cycleStartTime = -999999
@@ -62,9 +63,10 @@ function threads_test()
                   :Hold("1", press1Time)
                   :After(attack1Time -press1Time)
                   :Hold("1", press1Time)
+                  :After(press2Delay)
                   :Function(useImbue,"")
                   :Hold("2", press2Time)
-                  :After(attack1Time -press2Time)
+                  :After(attack1Time - press2Time)
                   :Make()
   )
   runner.actionResource:unblock()

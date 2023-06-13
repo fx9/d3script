@@ -33,26 +33,48 @@ function threads_test()
   local runner = ProgramRunner:new()
   local subActions = SubActionsMaker:new()
 
-  local attack1Time=600
-  local press1Time = 200
-  local attack2Time=600
-  local press2Time = 200
+  local attack1Time= 516
+  local press1Time = 220
+  local press2Time = press1Time
 
-  local press12 = runner:AddAction(
-          subActions:Hold("1", press1Time):After(attack1Time -press1Time)
-                  :Hold("1", press1Time):After(attack1Time -press1Time)
-                  :Hold("1", press1Time):Hold("2", press2Time):After(attack2Time -press2Time):DoNothing():Make()
+
+  local imbueCd=11560
+  local imbueKeys = {"3","3","","4","4"}
+  local currImbue = 1
+  local cycleStartTime = -999999
+  local useImbue = function(key)
+    local currTime = RTime()
+    if currTime - cycleStartTime >= imbueCd then
+      currImbue = 1
+      cycleStartTime = currTime
+    end
+    if currImbue <= #imbueKeys and imbueKeys[currImbue] ~= "" then
+      click(imbueKeys[currImbue])
+    end
+    currImbue = currImbue + 1
+  end
+
+  local press12 = runner:Add(
+          subActions
+                  :WithResource(runner.actionResource)
+                  :Hold("1", press1Time)
+                  :After(attack1Time -press1Time)
+                  :Hold("1", press1Time)
+                  :After(attack1Time -press1Time)
+                  :Hold("1", press1Time)
+                  :Function(useImbue,"")
+                  :Hold("2", press2Time)
+                  :After(attack1Time -press2Time)
+                  :Make()
   )
-  press12.subActions[1]:AddResource(runner.actionResource)
-  press12.subActions[2]:AddResource(runner.actionResource)
-  press12.subActions[3]:AddResource(runner.actionResource)
-  press12.subActions[4]:AddResource(runner.actionResource)
+  runner.actionResource:unblock()
 
-  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
-  local click4 = runner:AddClick { firstCycleOffset=6500, key = "4", cycleTime = 500, }
+  --local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  --local click4 = runner:AddClick { firstCycleOffset=6500, key = "4", cycleTime = 500, }
   local clickF = runner:AddClick { key = "f", cycleTime = 500, }
 
   local replaceML = runner:AddReplaceMouseLeft("", { }, true)
+  --local imbueCounter = runner:AddModEdgeTriggerCached("mouseright", costImbue, doNothing)
   --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
   --local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
@@ -704,6 +726,7 @@ function ProgramRunner:new(o)
   o.programs = o.programs or {}
   setmetatable(o, self)
   self.__index = self
+  self.actionResource:unblock()
   return o
 end
 
@@ -813,6 +836,7 @@ function ProgramRunner:run()
 end
 
 SubActionsMaker = {
+  resource = nil,
   afterMs = 0,
   subActions = {},
 }
@@ -830,8 +854,16 @@ function SubActionsMaker:Add(p)
   table.insert(self.subActions, p)
   p.onlyOnce = true
   p.firstCycleOffset = self.afterMs
+  if self.resource ~=nil then
+    p:AddResource(self.resource)
+  end
   self.afterMs = 0
   return p
+end
+
+function SubActionsMaker:WithResource(r)
+  self.resource = r
+  return self
 end
 
 function SubActionsMaker:After(ms)
@@ -851,6 +883,11 @@ end
 
 function SubActionsMaker:Click(key)
   self:Add { key = key, pressFunc = click, releaseFunc = doNothing, }
+  return self
+end
+
+function SubActionsMaker:Function(func, key)
+  self:Add {key = key, pressFunc = func, releaseFunc = doNothing, }
   return self
 end
 
@@ -875,6 +912,10 @@ function SubActionsMaker:DoNothing()
 end
 
 function SubActionsMaker:Make(p)
+  self:WithResource(nil)
+  if self.afterMs > 0 then
+    self:DoNothing()
+  end
   p = p or {}
   p.pressFunc = p.pressFunc or doNothing
   p.releaseFunc = p.releaseFunc or doNothing

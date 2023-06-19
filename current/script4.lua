@@ -20,7 +20,8 @@ function logif(condition, msg, name, value) return condition and log(msg, name, 
 
 function func_selector()
   --threads_dh_strafe2()
-  threads_test()
+  threads_d4_rogue_rapid_fire()
+  --threads_d4_rogue_imbue()
   --testSubAction()
   --threads_wiz_meteor()
   --threads_dh_cluster()
@@ -29,56 +30,19 @@ function func_selector()
   mouse_move = false
 end
 
-function threads_d4_rogue_imbue()
+function threads_d4_rogue_rapid_fire()
   local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
 
-  local attack1Time= 490
-  local press1Time = 220
-  local press2Time = 100
-  local press2Delay = 100
+  local press1 = runner:AddHoldKey {
+    priority = 1,
+    key = "1",
+  }
+  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
 
-
-  local imbueCd=9860
-  local imbueKeys = {"3","3","","4","4"}
-  local currImbue = 1
-  local cycleStartTime = -999999
-  local useImbue = function(key)
-    local currTime = RTime()
-    if currTime - cycleStartTime >= imbueCd then
-      currImbue = 1
-      cycleStartTime = currTime
-    end
-    if currImbue <= #imbueKeys and imbueKeys[currImbue] ~= "" then
-      click(imbueKeys[currImbue])
-    end
-    currImbue = currImbue + 1
-  end
-
-  local press12 = runner:Add(
-          subActions
-                  :WithResource(runner.actionResource)
-                  :Hold("1", press1Time)
-                  :After(attack1Time -press1Time)
-                  :Hold("1", press1Time)
-                  :After(attack1Time -press1Time)
-                  :Hold("1", press1Time)
-                  :After(press2Delay)
-                  :Function(useImbue,"")
-                  :Hold("2", press2Time)
-                  :After(attack1Time - press2Time)
-                  :Make()
-  )
-  runner.actionResource:unblock()
-
-  --local click3 = runner:AddClick { key = "3", cycleTime = 500, }
-  --local click4 = runner:AddClick { firstCycleOffset=6500, key = "4", cycleTime = 500, }
-  local clickF = runner:AddClick { key = "f", cycleTime = 500, }
-
-  local replaceML = runner:AddReplaceMouseLeft("", { }, true)
-  --local imbueCounter = runner:AddModEdgeTriggerCached("mouseright", costImbue, doNothing)
-  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
-  --local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+  local replaceML = runner:AddReplaceMouseLeft("", {press1, click3, click4 })
 
   runner:run()
 end
@@ -1132,6 +1096,61 @@ function threads_cru_test()
 
   runner:run()
 end
+
+function threads_d4_rogue_imbue()
+  local runner = ProgramRunner:new()
+  local subActions = SubActionsMaker:new()
+
+  local attack1Time= 490
+  local press1Time = 220
+  local press2Time = 100
+  local press2Delay = 100
+
+
+  local imbueCd=9860
+  local imbueKeys = {"3","3","","4","4"}
+  local currImbue = 1
+  local cycleStartTime = -999999
+  local useImbue = function(key)
+    local currTime = RTime()
+    if currTime - cycleStartTime >= imbueCd then
+      currImbue = 1
+      cycleStartTime = currTime
+    end
+    if currImbue <= #imbueKeys and imbueKeys[currImbue] ~= "" then
+      click(imbueKeys[currImbue])
+    end
+    currImbue = currImbue + 1
+  end
+
+  local press12 = runner:Add(
+          subActions
+                  :WithResource(runner.actionResource)
+                  :Hold("1", press1Time)
+                  :After(attack1Time -press1Time)
+                  :Hold("1", press1Time)
+                  :After(attack1Time -press1Time)
+                  :Hold("1", press1Time)
+                  :After(press2Delay)
+                  :Function(useImbue,"")
+                  :Hold("2", press2Time)
+                  :After(attack1Time - press2Time)
+                  :Make()
+  )
+  runner.actionResource:unblock()
+
+  --local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  --local click4 = runner:AddClick { firstCycleOffset=6500, key = "4", cycleTime = 500, }
+  local clickF = runner:AddClick { key = "f", cycleTime = 500, }
+
+  local replaceML = runner:AddReplaceMouseLeft("", { }, true)
+  --local imbueCounter = runner:AddModEdgeTriggerCached("mouseright", costImbue, doNothing)
+  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  --local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  runner:run()
+end
+
 
 last_release_switch = -9999
 function OnEvent(event, arg)

@@ -39,10 +39,28 @@ function threads_d4_rogue_rapid_fire()
     priority = 1,
     key = "1",
   }
+  local click2 = runner:AddClick { key = "4", cycleTime = 500, }
   local click3 = runner:AddClick { key = "3", cycleTime = 500, }
   local click4 = runner:AddClick { key = "4", cycleTime = 500, }
 
-  local replaceML = runner:AddReplaceMouseLeft("", {press1, click3, click4 })
+  local replaceML = runner:AddReplaceMouseLeft("mouse4", {press1, click2, click3, click4 })
+
+  runner:run()
+end
+
+function threads_d4_rogue_flurry()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+
+  local press1 = runner:AddHoldKey {
+    priority = 1,
+    key = "1",
+  }
+  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+
+  local replaceML = runner:AddReplaceMouseLeft("mouse4", {press1, click3, click4 })
 
   runner:run()
 end

@@ -20,7 +20,8 @@ function logif(condition, msg, name, value) return condition and log(msg, name, 
 
 function func_selector()
   --threads_dh_strafe2()
-  threads_d4_rogue_rapid_fire()
+  threads_d4_rogue_flurry_RF()
+  --threads_d4_rogue_rapid_fire()
   --threads_d4_rogue_imbue()
   --testSubAction()
   --threads_wiz_meteor()
@@ -28,6 +29,55 @@ function func_selector()
   --threads_dh_trap()
   --threads_cru_test()
   mouse_move = false
+end
+
+function threads_d4_rogue_flurry_RF()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+
+  local holdFlurry = runner:AddHoldKey {
+    priority = 1,
+    key = "1",
+  }
+  local holdRapidFire = runner:AddHoldKey {
+    priority = 2,
+    key = "2",
+    isEnabledFunc = ModIsOn("capslock")
+  }
+  local pressFlurryAndTrap = runner:Add(
+          subActions
+                  :After(200)
+                  :Hold("3", 200)
+                  :After(500)
+                  :Press("lshift")
+                  :WithResource(runner.actionResource, 3)
+                  :Hold("1", 200)
+                  :WithResource(nil)
+                  :Release("lshift")
+                  :After(900)
+                  :Make()
+  )
+  pressFlurryAndTrap.isEnabledFunc = ModIsOn("capslock")
+  runner.actionResource:unblock()
+
+  local clickTrap = runner:AddClick { key = "3", cycleTime = 500, isEnabledFunc = ModIsOff("capslock") }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  local capslockAdjuster = runner:AddClick { key = "", cycleTime = 0, pressFunc = function()
+    x, y = GetMousePosition()
+    xx = x - 32768
+    yy = y - 31468
+    d = math.sqrt(xx*xx + yy*yy)
+    if d > 4096 then
+      setOn("capslock")
+    else
+      setOff("capslock")
+    end
+  end }
+
+  local replaceML = runner:AddReplaceMouseLeft("F", {holdFlurry, holdRapidFire, pressFlurryAndTrap, clickTrap, click4 })
+
+  runner:run()
 end
 
 function threads_d4_rogue_rapid_fire()
@@ -39,11 +89,11 @@ function threads_d4_rogue_rapid_fire()
     priority = 1,
     key = "1",
   }
-  local click2 = runner:AddClick { key = "4", cycleTime = 500, }
+  local click2 = runner:AddClick { key = "2", cycleTime = 500, }
   local click3 = runner:AddClick { key = "3", cycleTime = 500, }
   local click4 = runner:AddClick { key = "4", cycleTime = 500, }
 
-  local replaceML = runner:AddReplaceMouseLeft("mouse4", {press1, click2, click3, click4 })
+  local replaceML = runner:AddReplaceMouseLeft("F", {press1, click2, click3, click4 })
 
   runner:run()
 end
@@ -60,7 +110,7 @@ function threads_d4_rogue_flurry()
   local click3 = runner:AddClick { key = "3", cycleTime = 500, }
   local click4 = runner:AddClick { key = "4", cycleTime = 500, }
 
-  local replaceML = runner:AddReplaceMouseLeft("mouse4", {press1, click3, click4 })
+  local replaceML = runner:AddReplaceMouseLeft("F", {press1, click3, click4 })
 
   runner:run()
 end
@@ -821,6 +871,7 @@ end
 
 SubActionsMaker = {
   resource = nil,
+  priority = 0,
   afterMs = 0,
   subActions = {},
 }
@@ -838,14 +889,16 @@ function SubActionsMaker:Add(p)
   table.insert(self.subActions, p)
   p.onlyOnce = true
   p.firstCycleOffset = self.afterMs
-  if self.resource ~=nil then
+  if self.resource ~= nil then
     p:AddResource(self.resource)
+    p.priority = self.priority
   end
   self.afterMs = 0
   return p
 end
 
-function SubActionsMaker:WithResource(r)
+function SubActionsMaker:WithResource(r, priority)
+  self.priority = priority or 0
   self.resource = r
   return self
 end
@@ -1169,6 +1222,16 @@ function threads_d4_rogue_imbue()
   runner:run()
 end
 
+function logMousePosition()
+  x, y = GetMousePosition()
+  myprint("get mouse position",{x=x,y=y})
+end
+
+function testMousePosition(x, y)
+  myprint("move mouse position",{x=x,y=y})
+  MoveMouseToVirtual(x, y)
+  click("mouseleft")
+end
 
 last_release_switch = -9999
 function OnEvent(event, arg)
@@ -1179,7 +1242,7 @@ function OnEvent(event, arg)
 
   local funcs = {
     [8] = func_selector,
-    [9] = func_selector,
+    --[9] = function() testMousePosition(32768,31500) end,
   }
   if (funcs[arg] ~= nil) then
     if (event == "MOUSE_BUTTON_PRESSED") then

@@ -36,6 +36,10 @@ function threads_d4_rogue_flurry_RF()
   runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
 
+  local closeRangeEnabled = false
+  local closeRangeEnabledFunc = function() return isOn("capslock") or closeRangeEnabled end
+  local closeRangeDisabledFunc = function() return not closeRangeEnabledFunc() end
+
   local holdFlurry = runner:AddHoldKey {
     priority = 1,
     key = "1",
@@ -43,7 +47,7 @@ function threads_d4_rogue_flurry_RF()
   local holdRapidFire = runner:AddHoldKey {
     priority = 2,
     key = "2",
-    isEnabledFunc = ModIsOn("capslock")
+    isEnabledFunc = closeRangeEnabledFunc
   }
   local pressFlurryAndTrap = runner:Add(
           subActions
@@ -58,20 +62,28 @@ function threads_d4_rogue_flurry_RF()
                   :After(900)
                   :Make()
   )
-  pressFlurryAndTrap.isEnabledFunc = ModIsOn("capslock")
+  pressFlurryAndTrap.isEnabledFunc = closeRangeEnabledFunc
   runner.actionResource:unblock()
 
-  local clickTrap = runner:AddClick { key = "3", cycleTime = 500, isEnabledFunc = ModIsOff("capslock") }
+  local clickTrap = runner:AddClick { key = "3", cycleTime = 500, isEnabledFunc = closeRangeDisabledFunc }
   local click4 = runner:AddClick { key = "4", cycleTime = 500, }
-  local capslockAdjuster = runner:AddClick { key = "", cycleTime = 0, pressFunc = function()
+  local closeTicks = 0
+  local closeRatio = 0.18
+  local closeRange = 32768 * closeRatio
+  local capslockAdjuster = runner:AddClick { key = "", cycleTime = 100, pressFunc = function()
     x, y = GetMousePosition()
     xx = x - 32768
     yy = y - 31468
+    yy = yy*9/16
     d = math.sqrt(xx*xx + yy*yy)
-    if d > 4096 then
-      setOn("capslock")
+    if d > closeRange then
+      closeTicks = 0
+      closeRangeEnabled = false
     else
-      setOff("capslock")
+      closeTicks = closeTicks + 1
+      if closeTicks >= 2 then
+        closeRangeEnabled = true
+      end
     end
   end }
 

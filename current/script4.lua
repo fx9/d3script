@@ -597,7 +597,7 @@ end
 
 function CdAction:subActionsAreDone()
   -- index is 1-based
-  return self.currentSubActionIndex > table.getn(self.subActions)
+  return self.currentSubActionIndex > #self.subActions
 end
 
 function CdAction:currentSubAction()

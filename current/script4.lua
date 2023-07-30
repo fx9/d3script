@@ -19,8 +19,10 @@ function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
 function func_selector()
+  threads_temp()
   --threads_dh_strafe2()
-  threads_d4_rogue_flurry_RF()
+  --threads_d4_rogue_flurry()
+  --threads_d4_rogue_flurry_RF()
   --threads_d4_rogue_rapid_fire()
   --threads_d4_rogue_imbue()
   --testSubAction()
@@ -29,6 +31,40 @@ function func_selector()
   --threads_dh_trap()
   --threads_cru_test()
   mouse_move = false
+end
+
+function threads_temp()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+
+  local press1 = runner:AddHoldKey {    priority = 1,    key = "1",  }
+  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
+  local click2 = runner:AddClick { key = "2", cycleTime = 500, }
+  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  local clickF = runner:AddClick { key = "F", cycleTime = 3000, }
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  local replaceML = runner:AddReplaceMouseLeft("", {press1,click4,clickF})
+
+  runner:run()
+end
+
+function threads_d4_trampslide()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+
+  local press1 = runner:AddHoldKey {    priority = 1,    key = "1",  }
+  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
+  local click2 = runner:AddClick { key = "2", cycleTime = 500, }
+  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  local replaceML = runner:AddReplaceMouseLeft("", {press1,click2,click4,clickMR})
+
+  runner:run()
 end
 
 function threads_d4_rogue_flurry_RF()
@@ -809,7 +845,7 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions, blockActi
     blockedActions = blockedActions or {},
     enableBlockedActions = true,
     key = replaceKey,
-    cycleTime = 200,
+    cycleTime = 150,
     pressFunc = releaseAndPressML,
     releaseFunc = doNothing,
     isEnabledFunc = ModIsOn("mouseleft"),

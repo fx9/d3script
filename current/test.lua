@@ -12,7 +12,7 @@ OnEvent("MOUSE_BUTTON_PRESSED",8)
 mockRuntime:validate()
 
 mockRuntime:Setup({})
-threads_test()
+threads_d4_rogue_imbue()
 mockRuntime:validate()
 
 print("This is the end of test.")

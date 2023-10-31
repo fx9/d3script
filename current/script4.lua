@@ -19,8 +19,12 @@ function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
 function func_selector()
-  threads_temp()
-  --threads_druid_EB()
+  --threads_d3_cru()
+  --threads_d3_nec()
+  --threads_barb()
+  --threads_sor_chain_lightning()
+  threads_druid_EB2()
+  --threads_boulder()
   --threads_dh_strafe2()
   --threads_d4_rogue_flurry()
   --threads_d4_rogue_flurry_RF()
@@ -31,10 +35,204 @@ function func_selector()
   --threads_dh_cluster()
   --threads_dh_trap()
   --threads_cru_test()
-  mouse_move = false
+  --mouse_move = false
 end
 
-function threads_temp()
+function threads_d3_cru()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  blockedActions = {}
+
+  --local clickT = runner:AddClick { key = "t", cycleTime = 100, }
+  --table.insert(blockedActions, clickT)
+
+  local forceMove = runner:AddHoldKey { priority = 1, key = "spacebar", }
+  table.insert(blockedActions, forceMove)
+
+  local click234MR = runner:Add(
+          subActions
+                  :WithResource(runner.actionResource, 3)
+                  :After(1)
+                  :Click("1")
+                  :Click("2")
+                  :Click("3")
+                  :Click("4")
+                  :Click("mouseright")
+                  :WithResource(nil)
+                  :After(5000)
+                  :Make()
+  )
+  --table.insert(blockedActions, click234MR)
+
+  --local press1 = runner:AddHoldKey { priority = 1, key = "1", firstCycleOffset = 200 }
+  --press1.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, press1)
+
+  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
+
+  --local click2 = runner:AddClick { key = "2", cycleTime = 500, }
+  --click2.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, click2)
+
+  --local click3 = runner:AddClick { key = "3", cycleTime = 200, }
+  --click3.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, click3)
+
+  --local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+  --click4.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, click4)
+
+  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
+  --table.insert(blockedActions, clickMR)
+
+  local replaceML = runner:AddReplaceMouseLeft("backspace", blockedActions)
+
+  runner:run()
+end
+
+function threads_d3_nec()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  blockedActions = {}
+
+  local press1 = runner:AddHoldKey { priority = 1, key = "1", firstCycleOffset = 200 }
+  press1.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, press1)
+
+  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
+
+  --local click2 = runner:AddClick { key = "2", cycleTime = 500, }
+  --click2.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, click2)
+
+  --local click3 = runner:AddClick { key = "3", cycleTime = 200, }
+  --click3.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, click3)
+
+  local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+  --click4.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click4)
+
+  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
+  --table.insert(blockedActions, clickMR)
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", blockedActions)
+
+  runner:run()
+end
+
+function threads_druid_EB2()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  blockedActions = {}
+
+  local press1 = runner:AddHoldKey { priority = 1, key = "1", }
+  press1.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, press1)
+-- [[
+  local click2 = runner:AddClick { key = "2", cycleTime = 3000, holdTime = 100  }
+  click2:AddResource(buffActionResource)
+  click2.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click2)
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
+  click3:AddResource(buffActionResource)
+  click3.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click3)
+--]]
+  local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+  click4.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click4)
+
+  --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
+  --clickF.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, clickF)
+
+  local clickDot = runner:AddClick { key = "period", cycleTime = 800, }
+  --clickDot.isEnabledFunc = ModIsOn("mouseleft")
+  --table.insert(blockedActions, clickDot)
+
+  local replaceML = runner:AddReplaceMouseLeft("backspace", blockedActions)
+
+
+  runner:run()
+end
+
+function threads_barb()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  local press1 = runner:AddHoldKey { priority = 1, key = "1", }
+  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
+  local click2 = runner:AddClick { key = "2", cycleTime = 500, }
+  --click2:AddResource(buffActionResource)
+-- [[
+  local click3 = runner:AddClick { key = "3", cycleTime = 500, }
+  --click3:AddResource(buffActionResource)
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
+  --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
+  local clickF = runner:AddHoldKey { priority = 2, cycleTime = 200, key = "F", holdTime = 100,}
+  clickF:AddResource(buffActionResource)
+  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  local clickQ = runner:AddClick { key = "Q", cycleTime = 5000, }
+--]]
+
+  local replaceML = runner:AddReplaceMouseLeft("", {press1,click2,click3,click4,clickF,clickMR})
+
+  runner:run()
+end
+
+function threads_boulder()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  blockedActions = {}
+
+  local press1 = runner:AddHoldKey { priority = 1, key = "1", }
+  press1.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, press1)
+--[[
+  local click2 = runner:AddClick { key = "2", cycleTime = 3000, holdTime = 100  }
+  click2:AddResource(buffActionResource)
+  click2.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click2)
+--]]
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 3000, holdTime = 100  }
+  click3:AddResource(buffActionResource)
+  click3.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click3)
+
+  local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+  click4.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click4)
+
+  local clickF = runner:AddHoldKey { priority = 2, cycleTime = 800, key = "F", holdTime = 100,}
+  clickF.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, clickF)
+
+  local clickQ = runner:AddClick { key = "Q", cycleTime = 5000, }
+
+  local replaceML = runner:AddReplaceMouseLeft("backspace", blockedActions)
+
+  runner:run()
+end
+
+function threads_sor_chain_lightning()
   local runner = ProgramRunner:new()
   runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
@@ -52,28 +250,7 @@ function threads_temp()
   --clickF:AddResource(buffActionResource)
   --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
 --]]
-  local replaceML = runner:AddReplaceMouseLeft("", {press1,click2,click4,clickF})
 
-  runner:run()
-end
-
-function threads_druid_EB()
-  local runner = ProgramRunner:new()
-  runner.actionResource:unblock()
-  local subActions = SubActionsMaker:new()
-  local buffActionResource = Resource:new()
-
-  local press1 = runner:AddHoldKey { priority = 1, key = "1", }
-  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
-  local click2 = runner:AddClick { key = "2", cycleTime = 200, }
--- [[
-  local click3 = runner:AddClick { key = "3", cycleTime = 3000, holdTime = 100 }
-  click3:AddResource(buffActionResource)
-  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
-  local clickF = runner:AddClick { key = "F", cycleTime = 3000, holdTime = 100 }
-  clickF:AddResource(buffActionResource)
-  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
---]]
   local replaceML = runner:AddReplaceMouseLeft("", {press1,click2,click4,clickF})
 
   runner:run()
@@ -1108,7 +1285,9 @@ function releaseAndPressML(replaceKey)
     press(replaceKey)
   end
   press("mouseleft")
-  --Sleep(1)
+  -- sleep 1 to make sure mouse left is recognized to be released
+  -- can be removed if it works
+  Sleep(1)
 end
 
 function threads_dh_strafe2()

@@ -18,6 +18,9 @@ LOOP_DELAY = 1
 function log(msg, name, value) return DEBUG and myprint(msg, name, value) end
 function logif(condition, msg, name, value) return condition and log(msg, name, value) end
 
+KEY_D3_FORCE_MOVE = "backslash"
+KEY_D4_FORCE_MOVE = "k"
+
 function func_selector()
   --threads_d3_cru()
   --threads_d3_nec()
@@ -134,17 +137,18 @@ function threads_druid_claw_shred()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
   local cursorLocator = CursorLocator:new{
-    closeRatio = 0.18,
+    closeRatio = 0.3, -- range of claw=390/1280, but this can be different
     staticRatio = 0.01, -- 0.01 = 1/200 screen width
-    extraUnitLengthRatioY = 1.0, -- a value <1 means "close range" is closer on Y axis
+    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
   }
   local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc =cursorLocator:GetPositionFunc() }
 
   blockedActions = {}
 
+  local farFunc, notFarFunc = cursorLocator:isFarFunc(1)
 
   local press1 = runner:AddHoldKey { priority = 1, key = "1", }
-  press1.isEnabledFunc = ModIsOff("mouseright")
+  press1.isEnabledFunc = notFarFunc
   table.insert(blockedActions, press1)
 -- [[
   local click2 = runner:AddClick { key = "2", cycleTime = 3000, holdTime = 100  }
@@ -165,9 +169,11 @@ function threads_druid_claw_shred()
   --clickF.isEnabledFunc = ModIsOff("mouseright")
   --table.insert(blockedActions, clickF)
 
-  local clickDot = runner:AddClick { key = "period", cycleTime = 500, }
-  clickDot.isEnabledFunc = cursorLocator:isFarFunc(2)
-  --table.insert(blockedActions, clickDot)
+  local pressDot = runner:AddHoldKey { priority = 1, key = "period", }
+  pressDot.isEnabledFunc = farFunc
+  local forceMove = runner:AddHoldKey { priority = 2, cycleTime = 200, holdTime = 100, key = KEY_D4_FORCE_MOVE, }
+  forceMove.isEnabledFunc = farFunc
+  table.insert(blockedActions, forceMove)
 
   local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
 
@@ -700,8 +706,8 @@ CursorLocator = {
   centerX = 32768,
   centerY = 31468,
   unitLengthRatioY = 9/16, -- width/length ratio of screen
-  extraUnitLengthRatioY = 1.0, -- a value <1 means "close range" is closer on Y axis
-  historyLength = 10,
+  pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
+  historyLength = 5,
 
   x = 0,
   y = 0,
@@ -737,7 +743,7 @@ function CursorLocator:GetPosition()
   self.x = x
   self.y = y
   self.xx = x - self.centerX
-  self.yy = (y - self.centerY) * self.unitLengthRatioY * self.extraUnitLengthRatioY
+  self.yy = (y - self.centerY) * self.unitLengthRatioY / self.pixelOvalRatioY
   table.insert(self.xxHistory,1,self.xx)
   table.insert(self.yyHistory,1,self.yy)
   if #self.xxHistory > self.historyLength then
@@ -819,14 +825,20 @@ function CursorLocator:isFarFunc(count)
   local function func()
     return self:isClose(count, true)
   end
-  return func
+  local function notFunc()
+    return not self:isClose(count, true)
+  end
+  return func, notFunc
 end
 
 function CursorLocator:isStaticFunc(count)
   local function func()
     return self:isStatic(count)
   end
-  return func
+  local function notFunc()
+    return not self:isStatic(count)
+  end
+  return func, notFunc
 end
 
 

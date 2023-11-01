@@ -23,7 +23,8 @@ function func_selector()
   --threads_d3_nec()
   --threads_barb()
   --threads_sor_chain_lightning()
-  threads_druid_EB2()
+  threads_druid_claw_shred()
+  --threads_druid_EB2()
   --threads_boulder()
   --threads_dh_strafe2()
   --threads_d4_rogue_flurry()
@@ -88,7 +89,7 @@ function threads_d3_cru()
   --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
   --table.insert(blockedActions, clickMR)
 
-  local replaceML = runner:AddReplaceMouseLeft("backspace", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeft("backslash", blockedActions)
 
   runner:run()
 end
@@ -127,6 +128,54 @@ function threads_d3_nec()
   runner:run()
 end
 
+function threads_druid_claw_shred()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+  local cursorLocator = CursorLocator:new{
+    closeRatio = 0.18,
+    staticRatio = 0.01, -- 0.01 = 1/200 screen width
+    extraUnitLengthRatioY = 1.0, -- a value <1 means "close range" is closer on Y axis
+  }
+  local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc =cursorLocator:GetPositionFunc() }
+
+  blockedActions = {}
+
+
+  local press1 = runner:AddHoldKey { priority = 1, key = "1", }
+  press1.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, press1)
+-- [[
+  local click2 = runner:AddClick { key = "2", cycleTime = 3000, holdTime = 100  }
+  click2:AddResource(buffActionResource)
+  click2.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click2)
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
+  click3:AddResource(buffActionResource)
+  click3.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click3)
+--]]
+  local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+  click4.isEnabledFunc = ModIsOff("mouseright")
+  table.insert(blockedActions, click4)
+
+  --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
+  --clickF.isEnabledFunc = ModIsOff("mouseright")
+  --table.insert(blockedActions, clickF)
+
+  local clickDot = runner:AddClick { key = "period", cycleTime = 500, }
+  clickDot.isEnabledFunc = cursorLocator:isFarFunc(2)
+  --table.insert(blockedActions, clickDot)
+
+  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+
+
+  runner:run()
+end
+
+
 function threads_druid_EB2()
   local runner = ProgramRunner:new()
   runner.actionResource:unblock()
@@ -161,7 +210,7 @@ function threads_druid_EB2()
   --clickDot.isEnabledFunc = ModIsOn("mouseleft")
   --table.insert(blockedActions, clickDot)
 
-  local replaceML = runner:AddReplaceMouseLeft("backspace", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
 
 
   runner:run()
@@ -227,7 +276,7 @@ function threads_boulder()
 
   local clickQ = runner:AddClick { key = "Q", cycleTime = 5000, }
 
-  local replaceML = runner:AddReplaceMouseLeft("backspace", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
 
   runner:run()
 end
@@ -644,6 +693,142 @@ function clickAvoid(key_or_func)
 end
 
 -- classes
+
+CursorLocator = {
+  closeRatio = 0.18, -- 0.01 = 1/200 screen width
+  staticRatio = 0.01, -- 0.01 = 1/200 screen width
+  centerX = 32768,
+  centerY = 31468,
+  unitLengthRatioY = 9/16, -- width/length ratio of screen
+  extraUnitLengthRatioY = 1.0, -- a value <1 means "close range" is closer on Y axis
+  historyLength = 10,
+
+  x = 0,
+  y = 0,
+  xx = 0, -- x relative to center
+  yy = 0, -- y relative to center and unified to the scale of x
+  xxHistory = {},
+  yyHistory = {},
+}
+
+function CursorLocator:new(o)
+  o = o or {}
+  o.xxHistory = o.xxHistory or {}
+  o.yyHistory = o.yyHistory or {}
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+function CursorLocator:dCenter(i) -- distance to center
+  local xx = self.xxHistory[i]
+  local yy = self.yyHistory[i]
+  return math.sqrt(xx * xx + yy * yy)
+end
+
+function CursorLocator:dRelative(i, j) -- distance i to j
+  local dx = self.xxHistory[i] - self.xxHistory[j]
+  local dy = self.yyHistory[i] - self.yyHistory[j]
+  return math.sqrt(dx * dx + dy * dy)
+end
+
+function CursorLocator:GetPosition()
+  local x, y = GetMousePosition()
+  self.x = x
+  self.y = y
+  self.xx = x - self.centerX
+  self.yy = (y - self.centerY) * self.unitLengthRatioY * self.extraUnitLengthRatioY
+  table.insert(self.xxHistory,1,self.xx)
+  table.insert(self.yyHistory,1,self.yy)
+  if #self.xxHistory > self.historyLength then
+    table.remove(self.xxHistory)
+    table.remove(self.yyHistory)
+  end
+end
+
+function CursorLocator:GetPositionFunc()
+  local function func()
+    self:GetPosition()
+  end
+  return func
+end
+
+function CursorLocator:isCloseI(i)
+  i = i or 1
+  local d = self:dCenter(i)
+  local closeRange = self.closeRatio * 32768
+  if d > closeRange then
+    return false
+  else
+    return true
+  end
+end
+
+function CursorLocator:isStaticI(i)
+  i = i or 1
+  local d = self:dRelative(i, i+1)
+  local staticRange = self.staticRatio * 32768
+  if d > staticRange then
+    return false
+  else
+    return true
+  end
+end
+
+function CursorLocator:isClose(count, reverse)
+  reverse = reverse or false
+  local i = 1
+  count = count or 1
+  local j = i + count
+  if j > #self.xxHistory + 1 then
+    j = #self.xxHistory + 1
+  end
+  while i < j do
+    if reverse == self:isCloseI(i) then
+      return false
+    end
+    i = i + 1
+  end
+  return true
+end
+
+function CursorLocator:isStatic(count)
+  local i = 1
+  count = count or 1
+  local j = i + count
+  if j > #self.xxHistory then
+    j = #self.xxHistory
+  end
+  while i < j do
+    if not self:isStaticI(i) then
+      return false
+    end
+    i = i + 1
+  end
+  return true
+end
+
+function CursorLocator:isCloseFunc(count)
+  local function func()
+    return self:isClose(count, false)
+  end
+  return func
+end
+
+function CursorLocator:isFarFunc(count)
+  local function func()
+    return self:isClose(count, true)
+  end
+  return func
+end
+
+function CursorLocator:isStaticFunc(count)
+  local function func()
+    return self:isStatic(count)
+  end
+  return func
+end
+
 
 Resource = {
   name = "",

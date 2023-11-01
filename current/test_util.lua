@@ -228,3 +228,11 @@ function MoveMouseWheel(mw)
     mockRuntime.error()
   end
 end
+
+mouseX = 10000
+mouseY = 20000
+function GetMousePosition()
+  mouseX = mouseX + 100
+  mouseY = mouseY + 10
+  return mouseX, mouseY
+end

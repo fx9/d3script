@@ -22,14 +22,17 @@ KEY_D3_FORCE_MOVE = "backslash"
 KEY_D4_FORCE_MOVE = "k"
 
 function func_selector()
-  --threads_d3_cru()
-  --threads_d3_nec()
   --threads_barb()
+  --threads_druid_claw_shred()
   --threads_sor_chain_lightning()
-  threads_druid_claw_shred()
   --threads_druid_EB2()
   --threads_boulder()
+  threads_d3_cru_foth_s30()
+  --threads_d3_cru_condemn_s30()
+  --threads_d3_nec()
   --threads_dh_strafe2()
+  --threads_dh_strafe2_s30()
+  --threads_dh_spike_trap_s30()
   --threads_d4_rogue_flurry()
   --threads_d4_rogue_flurry_RF()
   --threads_d4_rogue_rapid_fire()
@@ -39,10 +42,58 @@ function func_selector()
   --threads_dh_cluster()
   --threads_dh_trap()
   --threads_cru_test()
-  --mouse_move = false
 end
 
-function threads_d3_cru()
+
+function threads_d3_cru_condemn_s30()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  blockedActions = {}
+
+  --local press1 = runner:AddHoldKey { priority = 1, key = "1", firstCycleOffset = 200 }
+  --table.insert(blockedActions, press1)
+
+  local press12 = runner:Add(
+          subActions
+                  :WithResource(runner.actionResource, 3)
+                  :Press("lshift")
+                  :Press("2")
+                  :After(100)
+                  :Click("mouseleft")
+                  :After(100)
+                  :Release("2")
+                  :Release("lshift")
+                  :Hold("1", 1300)
+                  :WithResource(nil)
+                  :Make()
+  )
+  table.insert(blockedActions, press12)
+
+
+  --local click2 = runner:AddClick { key = "2", cycleTime = 500, }
+  --table.insert(blockedActions, click2)
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 900, }
+  --table.insert(blockedActions, click3)
+
+  local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+  --table.insert(blockedActions, click4)
+
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
+  --table.insert(blockedActions, clickMR)
+
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", blockedActions)
+
+  runner:run()
+end
+
+
+function threads_d3_cru_foth_s30()
   local runner = ProgramRunner:new()
   runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
@@ -69,30 +120,38 @@ function threads_d3_cru()
                   :After(5000)
                   :Make()
   )
-  --table.insert(blockedActions, click234MR)
-
-  --local press1 = runner:AddHoldKey { priority = 1, key = "1", firstCycleOffset = 200 }
-  --press1.isEnabledFunc = ModIsOff("mouseright")
-  --table.insert(blockedActions, press1)
-
-  --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
-
-  --local click2 = runner:AddClick { key = "2", cycleTime = 500, }
-  --click2.isEnabledFunc = ModIsOff("mouseright")
-  --table.insert(blockedActions, click2)
-
-  --local click3 = runner:AddClick { key = "3", cycleTime = 200, }
-  --click3.isEnabledFunc = ModIsOff("mouseright")
-  --table.insert(blockedActions, click3)
-
-  --local click4 = runner:AddClick { key = "4", cycleTime = 200, }
-  --click4.isEnabledFunc = ModIsOff("mouseright")
-  --table.insert(blockedActions, click4)
-
-  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
-  --table.insert(blockedActions, clickMR)
+  table.insert(blockedActions, click234MR)
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   local replaceML = runner:AddReplaceMouseLeft("backslash", blockedActions)
+
+  runner:run()
+end
+
+function threads_d3_cru_foth_s30_GR()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+
+  blockedActions = {}
+
+  local click234MR = runner:Add(
+          subActions
+                  :WithResource(runner.actionResource, 3)
+                  :After(1)
+                  :Click("1")
+                  :Click("2")
+                  :Click("3")
+                  :Click("4")
+                  :Click("mouseright")
+                  :WithResource(nil)
+                  :After(5000)
+                  :Make()
+  )
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  local replaceML = runner:AddReplaceMouseLeft(KEY_D3_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
@@ -131,13 +190,51 @@ function threads_d3_nec()
   runner:run()
 end
 
+
+function test_multi_action()
+  local runner = ProgramRunner:new()
+  runner.actionResource:unblock()
+  local subActions = SubActionsMaker:new()
+  local buffActionResource = Resource:new()
+  local cursorLocator = CursorLocator:new{
+    closeRatio = 0.35, -- range of claw=390/1280, but this can be different
+    staticRatio = 0.01, -- 0.01 = 1/200 screen width
+    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
+  }
+  local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc =cursorLocator:GetPositionFunc() }
+
+  blockedActions = {}
+
+  local clickDotAndMove = runner:Add(
+          subActions
+                  :Press("F")
+                  :After(100)
+                  :Click("1")
+                  :Press("k")
+                  :After(50)
+                  :Release("k")
+                  :After(50)
+                  :Release("F")
+                  :Hold("F", 200)
+                  :Hold("F", 200)
+                  :Make()
+  )
+  table.insert(blockedActions, clickDotAndMove)
+
+  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+
+
+  runner:run()
+end
+
+
 function threads_druid_claw_shred()
   local runner = ProgramRunner:new()
   runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
   local cursorLocator = CursorLocator:new{
-    closeRatio = 0.3, -- range of claw=390/1280, but this can be different
+    closeRatio = 0.35, -- range of claw=390/1280, but this can be different
     staticRatio = 0.01, -- 0.01 = 1/200 screen width
     pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
   }
@@ -146,34 +243,45 @@ function threads_druid_claw_shred()
   blockedActions = {}
 
   local farFunc, notFarFunc = cursorLocator:isFarFunc(1)
+  local mrOffFunc = ModIsOff("mouseright")
+  local mrOffAndNotFarFunc = function() return mrOffFunc() and notFarFunc() end
 
   local press1 = runner:AddHoldKey { priority = 1, key = "1", }
   press1.isEnabledFunc = notFarFunc
   table.insert(blockedActions, press1)
 -- [[
-  local click2 = runner:AddClick { key = "2", cycleTime = 3000, holdTime = 100  }
+  local click2 = runner:AddClick { key = "2", cycleTime = 200 }
   click2:AddResource(buffActionResource)
-  click2.isEnabledFunc = ModIsOff("mouseright")
+  click2.isEnabledFunc = mrOffAndNotFarFunc
   table.insert(blockedActions, click2)
 
   local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
   click3:AddResource(buffActionResource)
-  click3.isEnabledFunc = ModIsOff("mouseright")
+  click3.isEnabledFunc = mrOffAndNotFarFunc
   table.insert(blockedActions, click3)
 --]]
   local click4 = runner:AddClick { key = "4", cycleTime = 200, }
-  click4.isEnabledFunc = ModIsOff("mouseright")
+  click4.isEnabledFunc = mrOffFunc
   table.insert(blockedActions, click4)
 
   --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
   --clickF.isEnabledFunc = ModIsOff("mouseright")
   --table.insert(blockedActions, clickF)
-
+--[[
   local pressDot = runner:AddHoldKey { priority = 1, key = "period", }
   pressDot.isEnabledFunc = farFunc
   local forceMove = runner:AddHoldKey { priority = 2, cycleTime = 200, holdTime = 100, key = KEY_D4_FORCE_MOVE, }
   forceMove.isEnabledFunc = farFunc
   table.insert(blockedActions, forceMove)
+--]]
+  local clickDotAndMove = runner:Add(
+          subActions
+                  :Hold("period", 100)
+                  :Hold(KEY_D4_FORCE_MOVE, 600)
+                  :Make()
+  )
+  clickDotAndMove.isEnabledFunc = farFunc
+  table.insert(blockedActions, clickDotAndMove)
 
   local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
 
@@ -239,9 +347,10 @@ function threads_barb()
   --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
   --local clickF = runner:AddClick { key = "F", cycleTime = 500, }
   local clickF = runner:AddHoldKey { priority = 2, cycleTime = 200, key = "F", holdTime = 100,}
-  clickF:AddResource(buffActionResource)
-  --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
+  --clickF:AddResource(buffActionResource)
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 500, }
   local clickQ = runner:AddClick { key = "Q", cycleTime = 5000, }
+  local clickG = runner:AddClick { key = "G", cycleTime = 100, }
 --]]
 
   local replaceML = runner:AddReplaceMouseLeft("", {press1,click2,click3,click4,clickF,clickMR})
@@ -1521,6 +1630,85 @@ function threads_dh_strafe2()
   release("lshift")
 end
 
+function threads_dh_strafe2_s30()
+  local runner = ProgramRunner:new()
+  local subActions = SubActionsMaker:new()
+
+  local press1Time = 340
+  local press1MoreTime = 1800
+  local press3Time = 200
+  local total13Time = press1MoreTime + press3Time
+
+  local press31 = runner:AddAction(
+          subActions
+                  :Press("lshift")
+                  :Hold("3", press3Time)
+                  :Click("mouseleft")
+                  :Release("lshift")
+                  :Hold("1", press1MoreTime)
+                  :Make()
+  )
+
+  local function press1More()
+    press31.subActions[#press31.subActions].holdTime = press1MoreTime
+  end
+
+  local function press1Less()
+    press31.subActions[#press31.subActions].holdTime = press1Time
+  end
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", { press31 })
+  local click2 = runner:AddClick { key = "2", cycleTime = 250, }
+  local click4 = runner:AddClick { key = "4", cycleTime = 500, }
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  local speedControl = runner:AddModEdgeTriggerCached("capslock", press1Less, press1More)
+
+  runner:run()
+  release("backslash")
+  release("lshift")
+end
+
+function threads_dh_spike_trap_s30()
+  local runner = ProgramRunner:new()
+  local subActions = SubActionsMaker:new()
+
+  blockedActions = {}
+
+  local press1 = runner:AddAction(
+          subActions
+                  :Hold("1", 500)
+                  :Press("lshift")
+                  :Click("mouseright")
+                  :Hold("4", 200)
+                  :Click("mouseleft")
+                  :After(130)
+                  :Release("lshift")
+                  :After(200)
+                  :Hold("1", 670)
+                  :Make()
+  )
+  table.insert(blockedActions, press1)
+
+  local click2 = runner:AddClick { key = "2", cycleTime = 200, }
+  table.insert(blockedActions, click2)
+
+  local click3 = runner:AddClick { key = "3", cycleTime = 4800, }
+  table.insert(blockedActions, click3)
+
+  local clickMR = runner:AddClick { key = "mouseright", cycleTime = 3000, }
+  table.insert(blockedActions, clickMR)
+
+  local replaceML = runner:AddReplaceMouseLeft("backslash", blockedActions)
+
+  local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
+
+  runner:run()
+  release("backslash")
+  release("lshift")
+end
+
 function testSubAction()
   local runner = ProgramRunner:new()
   local subActions = SubActionsMaker:new {}
@@ -1695,6 +1883,7 @@ function OnEvent(event, arg)
 
   local funcs = {
     [8] = func_selector,
+    [9] = threads_druid_claw_shred,
     --[9] = function() testMousePosition(32768,31500) end,
   }
   if (funcs[arg] ~= nil) then

@@ -55,7 +55,7 @@ function threads_d4_temp()
   table.insert(blockedActions, press1)
 
   --local click1 = runner:AddClick { key = "1", cycleTime = 500, }
--- [[
+  -- [[
   local click2 = runner:AddClick { key = "2", cycleTime = 200, }
   --click2.isEnabledFunc = ModIsOff("mouseright")
   table.insert(blockedActions, click2)
@@ -70,7 +70,7 @@ function threads_d4_temp()
 
   local clickF = runner:AddClick { key = "F", cycleTime = 500, }
   table.insert(blockedActions, clickF)
---]]
+  --]]
   --local clickMR = runner:AddClick { key = "mouseright", cycleTime = 250, }
   --table.insert(blockedActions, clickMR)
 
@@ -78,7 +78,7 @@ function threads_d4_temp()
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("F", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
@@ -152,16 +152,10 @@ function threads_d4_rogue_heartseeker()
   runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
-  local cursorLocator = CursorLocator:new{
-    closeRatio = 0.53, -- move instead of shooting out of this range
-    staticRatio = 0.01, -- 0.01 = 1/200 screen width
-    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
-  }
-  local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc = cursorLocator:GetPositionFunc() }
+  local _, _, farFunc, notFarFunc, _ = runner:AddCursorLocator({ closeRatio = 0.53, })
 
   blockedActions = {}
 
-  local farFunc, notFarFunc = cursorLocator:isFarFunc(1)
   local mrOffFunc = ModIsOff("mouseright")
   local mrOffAndNotFarFunc = function() return mrOffFunc() and notFarFunc() end
 
@@ -173,19 +167,19 @@ function threads_d4_rogue_heartseeker()
   clickF.isEnabledFunc = mrOffAndNotFarFunc
   table.insert(blockedActions, clickF)
 
---[[
-  local click2 = runner:AddClick { key = "2", cycleTime = 200 }
-  click2:AddResource(buffActionResource)
-  click2.isEnabledFunc = mrOffAndNotFarFunc
-  table.insert(blockedActions, click2)
-  local click4 = runner:AddClick { key = "4", cycleTime = 200, }
-  --click4.isEnabledFunc = mrOffFunc
-  --table.insert(blockedActions, click4)
-  local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
-  click3:AddResource(buffActionResource)
-  click3.isEnabledFunc = mrOffAndNotFarFunc
-  table.insert(blockedActions, click3)
---]]
+  --[[
+    local click2 = runner:AddClick { key = "2", cycleTime = 200 }
+    click2:AddResource(buffActionResource)
+    click2.isEnabledFunc = mrOffAndNotFarFunc
+    table.insert(blockedActions, click2)
+    local click4 = runner:AddClick { key = "4", cycleTime = 200, }
+    --click4.isEnabledFunc = mrOffFunc
+    --table.insert(blockedActions, click4)
+    local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
+    click3:AddResource(buffActionResource)
+    click3.isEnabledFunc = mrOffAndNotFarFunc
+    table.insert(blockedActions, click3)
+  --]]
   local clickFAndMove = runner:Add(
           subActions
                   :Hold("f", 100)
@@ -199,21 +193,20 @@ function threads_d4_rogue_heartseeker()
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
-
 
 function threads_d4_druid_claw_shred()
   local runner = ProgramRunner:new()
   runner.actionResource:unblock()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
-  local cursorLocator = CursorLocator:new{
+  local cursorLocator = CursorLocator:new {
     closeRatio = 0.35, -- range of claw=390/1280, but this can be different
     staticRatio = 0.01, -- 0.01 = 1/200 screen width
-    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
+    pixelOvalRatioY = 480 / 560, -- Y-axis pixels / X-axis pixels of the "close" oval
   }
   local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc = cursorLocator:GetPositionFunc() }
 
@@ -238,19 +231,19 @@ function threads_d4_druid_claw_shred()
   local clickF = runner:AddClick { key = "F", cycleTime = 500, }
   clickF.isEnabledFunc = ModIsOff("mouseright")
   table.insert(blockedActions, clickF)
---[[
-  local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
-  click3:AddResource(buffActionResource)
-  click3.isEnabledFunc = mrOffAndNotFarFunc
-  table.insert(blockedActions, click3)
---]]
---[[
-  local pressDot = runner:AddHoldKey { priority = 1, key = "period", }
-  pressDot.isEnabledFunc = farFunc
-  local forceMove = runner:AddHoldKey { priority = 2, cycleTime = 200, holdTime = 100, key = KEY_D4_FORCE_MOVE, }
-  forceMove.isEnabledFunc = farFunc
-  table.insert(blockedActions, forceMove)
---]]
+  --[[
+    local click3 = runner:AddClick { key = "3", cycleTime = 4600, holdTime = 100  }
+    click3:AddResource(buffActionResource)
+    click3.isEnabledFunc = mrOffAndNotFarFunc
+    table.insert(blockedActions, click3)
+  --]]
+  --[[
+    local pressDot = runner:AddHoldKey { priority = 1, key = "period", }
+    pressDot.isEnabledFunc = farFunc
+    local forceMove = runner:AddHoldKey { priority = 2, cycleTime = 200, holdTime = 100, key = KEY_D4_FORCE_MOVE, }
+    forceMove.isEnabledFunc = farFunc
+    table.insert(blockedActions, forceMove)
+  --]]
   local clickDotAndMove = runner:Add(
           subActions
                   :Hold("period", 100)
@@ -264,7 +257,7 @@ function threads_d4_druid_claw_shred()
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
@@ -275,15 +268,7 @@ function threads_d4_barb_ww_dust_devil()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
 
-
-  local cursorLocator = CursorLocator:new{
-    closeRatio = 0.35, -- close?
-    staticRatio = 0.05, -- 0.01 = 1/200 screen width
-    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
-  }
-  local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc = cursorLocator:GetPositionFunc() }
-
-  local closeFunc, notCloseFunc = cursorLocator:isCloseFunc(1)
+  --local closeFunc, notCloseFunc, _, _, _ = runner:AddCursorLocator({ closeRatio = 0.35, })
 
   blockedActions = {}
 
@@ -292,17 +277,17 @@ function threads_d4_barb_ww_dust_devil()
   local phase1Time = 1300
   --local isPhase1 = function () return closeFunc() or (RTime()-startTime)%totalPhaseTime <= phase1Time end
   --local isPhase2 = function () return not isPhase1() end
---[[
-  local loop2skills = runner:Add(
-          subActions
-                  :Hold("F", 100)
-                  --:Hold("period", 120)
-                 -- :Hold("4", 100)
-                  :Make()
-  )
-  loop2skills.isEnabledFunc = isPhase1
-  table.insert(blockedActions, loop2skills)
---]]
+  --[[
+    local loop2skills = runner:Add(
+            subActions
+                    :Hold("F", 100)
+                    --:Hold("period", 120)
+                   -- :Hold("4", 100)
+                    :Make()
+    )
+    loop2skills.isEnabledFunc = isPhase1
+    table.insert(blockedActions, loop2skills)
+  --]]
   local press1 = runner:AddHoldKey { priority = 1, key = "1", }
   press1.isEnabledFunc = ModIsOff("mouseright")
   table.insert(blockedActions, press1)
@@ -323,7 +308,7 @@ function threads_d4_barb_ww_dust_devil()
   clickForceMove.isEnabledFunc = ModIsOff("mouseright")
   table.insert(blockedActions, clickForceMove)
 
-  local clickF = runner:AddHoldKey { priority = 2, key = "f", cycleTime = 200, holdTime = 100}
+  local clickF = runner:AddHoldKey { priority = 2, key = "f", cycleTime = 200, holdTime = 100 }
   clickF.isEnabledFunc = ModIsOn("mouseright")
   --clickF:AddResource(buffActionResource)
   table.insert(blockedActions, clickF)
@@ -332,7 +317,6 @@ function threads_d4_barb_ww_dust_devil()
   clickDot.isEnabledFunc = ModIsOn("mouseright")
   --clickF:AddResource(buffActionResource)
   table.insert(blockedActions, clickDot)
-
 
   if D4_POTION_INTERVAL > 0 then
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
@@ -349,36 +333,15 @@ function threads_d4_barb_dust_devil_2weapon()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
 
-  local cursorLocator = CursorLocator:new{
-    closeRatio = 0.75, -- close?
-    staticRatio = 0.05, -- 0.01 = 1/200 screen width
-    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
-  }
-  local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc = cursorLocator:GetPositionFunc() }
-  local closeFunc, notCloseFunc = cursorLocator:isCloseFunc(1)
-
   blockedActions = {}
 
   local loop2skills = runner:Add(
           subActions
                   :Hold("1", 100)
                   :Hold("F", 120)
-                 -- :Hold("4", 100)
                   :Make()
   )
-  --loop2skills.isEnabledFunc = closeFunc
   table.insert(blockedActions, loop2skills)
-
-  --local clickForceMove = runner:AddClick { key = KEY_D4_FORCE_MOVE, cycleTime = 100, }
-  --clickForceMove.isEnabledFunc = notCloseFunc
-  --table.insert(blockedActions, clickForceMove)
-
---[[
-
-  local pressShift = runner:Add { key = "lshift", holdTime = -1}
-  pressShift.isEnabledFunc = staticAndCloseFunc
-  table.insert(blockedActions, pressShift)
---]]
 
   local click2 = runner:AddClick { key = "2", cycleTime = 200, }
   --click2:AddResource(buffActionResource)
@@ -391,15 +354,11 @@ function threads_d4_barb_dust_devil_2weapon()
   local click4 = runner:AddClick { key = "4", cycleTime = 1000, }
   table.insert(blockedActions, click4)
 
-  --local clickDot = runner:AddClick { key = "period", cycleTime = 100, }
-  --clickDot.isEnabledFunc = ModIsOn("mouseright")
-  --table.insert(blockedActions, clickDot)
-
   if D4_POTION_INTERVAL > 0 then
     local clickQ = runner:AddClick { key = "Q", cycleTime = 1000, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
@@ -410,19 +369,7 @@ function threads_d4_barb_dust_devil_3weapon()
   local subActions = SubActionsMaker:new()
   local buffActionResource = Resource:new()
 
-  local cursorLocator = CursorLocator:new{
-    closeRatio = 0.35, -- close?
-    staticRatio = 0.05, -- 0.01 = 1/200 screen width
-    pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
-  }
-  local cursorLocatorUpdater = runner:AddClick { key = "", cycleTime = 100, pressFunc = cursorLocator:GetPositionFunc() }
-
-  local closeFunc, notCloseFunc = cursorLocator:isCloseFunc(1)
-  local staticFunc = cursorLocator:isStaticFunc(2)
-  local staticAndCloseFunc = function() return staticFunc() and closeFunc() end
-
   blockedActions = {}
-
 
   local loop3skills = runner:Add(
           subActions
@@ -436,21 +383,11 @@ function threads_d4_barb_dust_devil_3weapon()
   )
   table.insert(blockedActions, loop3skills)
 
---[[
-  local pressShift = runner:Add { key = "lshift", holdTime = -1}
-  pressShift.isEnabledFunc = staticAndCloseFunc
-  table.insert(blockedActions, pressShift)
-  local loop2skills = runner:Add(
-          subActions
-                  :Hold("1", 100)
-                  :Hold("F", 100)
-                  :Hold("1", 100)
-                  :Hold("F", 100)
-                  :Make()
-  )
-  table.insert(blockedActions, loop2skills)
-
---]]
+  --[[
+    local pressShift = runner:Add { key = "lshift", holdTime = -1}
+    pressShift.isEnabledFunc = closeFunc
+    table.insert(blockedActions, pressShift)
+  --]]
 
   --local click2 = runner:AddClick { key = "2", cycleTime = 200, }
   --click2:AddResource(buffActionResource)
@@ -470,11 +407,10 @@ function threads_d4_barb_dust_devil_3weapon()
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
-
 
 function threads_d4_barb_bash()
   local runner = ProgramRunner:new()
@@ -488,7 +424,7 @@ function threads_d4_barb_bash()
           subActions
                   :Hold("1", 2000)
                   :Hold("F", 100)
-                  --:Hold("mouseright", 150)
+          --:Hold("mouseright", 150)
                   :Make()
   )
   table.insert(blockedActions, loop3skills)
@@ -504,11 +440,15 @@ function threads_d4_barb_bash()
   local click4 = runner:AddClick { key = "4", cycleTime = 500, }
   table.insert(blockedActions, click4)
 
+  local pressShift = runner:Add { key = "lshift", holdTime = -1}
+  --pressShift.isEnabledFunc = staticAndCloseFunc
+  table.insert(blockedActions, pressShift)
+
   if D4_POTION_INTERVAL > 0 then
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
@@ -556,8 +496,8 @@ function threads_d4_rogue_flurry_RF()
     x, y = GetMousePosition()
     xx = x - 32768
     yy = y - 31468
-    yy = yy*9/16
-    d = math.sqrt(xx*xx + yy*yy)
+    yy = yy * 9 / 16
+    d = math.sqrt(xx * xx + yy * yy)
     if d > closeRange then
       closeTicks = 0
       closeRangeEnabled = false
@@ -569,7 +509,7 @@ function threads_d4_rogue_flurry_RF()
     end
   end }
 
-  local replaceML = runner:AddReplaceMouseLeft("F", {holdFlurry, holdRapidFire, pressFlurryAndTrap, clickTrap, click4 })
+  local replaceML = runner:AddReplaceMouseLeft("F", { holdFlurry, holdRapidFire, pressFlurryAndTrap, clickTrap, click4 })
 
   runner:run()
 end
@@ -625,8 +565,8 @@ Press/release of mouseleft may take up to 0.06 ms actual time.
 --]]
 
 
-MOUSE_PRESS_TIME = {-1,-1,-1,-1,-1}
-MOUSE_RELEASE_TIME = {-1,-1,-1,-1,-1}
+MOUSE_PRESS_TIME = { -1, -1, -1, -1, -1 }
+MOUSE_RELEASE_TIME = { -1, -1, -1, -1, -1 }
 
 function isMouseOn(mb)
   if MOUSE_PRESS_TIME[mb] == RTime() then
@@ -639,7 +579,6 @@ function isMouseOn(mb)
 
   return IsMouseButtonPressed(mb)
 end
-
 
 MODIFIER_CHECK_FUNCTIONS = {
   ["shift"] = function() return IsModifierPressed("shift") end,
@@ -753,7 +692,7 @@ end
 
 --- click functions ---
 
-PRESS_SAFEGUARD={}
+PRESS_SAFEGUARD = {}
 function exitReleaseAll()
   for k, v in pairs(PRESS_SAFEGUARD) do
     if v then
@@ -881,9 +820,10 @@ CursorLocator = {
   staticRatio = 0.02, -- 0.01 = 1/200 screen width
   centerX = 32768,
   centerY = 31468,
-  unitLengthRatioY = 9/16, -- width/length ratio of screen
-  pixelOvalRatioY = 480/560, -- Y-axis pixels / X-axis pixels of the "close" oval
+  unitLengthRatioY = 9 / 16, -- width/length ratio of screen
+  pixelOvalRatioY = 480 / 560, -- Y-axis pixels / X-axis pixels of the "close" oval
   historyLength = 5,
+  updateInterval = 100, -- to be used by AddCursorLocator
 
   x = 0,
   y = 0,
@@ -902,13 +842,15 @@ function CursorLocator:new(o)
   return o
 end
 
-function CursorLocator:dCenter(i) -- distance to center
+function CursorLocator:dCenter(i)
+  -- distance to center
   local xx = self.xxHistory[i]
   local yy = self.yyHistory[i]
   return math.sqrt(xx * xx + yy * yy)
 end
 
-function CursorLocator:dRelative(i, j) -- distance i to j
+function CursorLocator:dRelative(i, j)
+  -- distance i to j
   local dx = self.xxHistory[i] - self.xxHistory[j]
   local dy = self.yyHistory[i] - self.yyHistory[j]
   return math.sqrt(dx * dx + dy * dy)
@@ -920,8 +862,8 @@ function CursorLocator:GetPosition()
   self.y = y
   self.xx = x - self.centerX
   self.yy = (y - self.centerY) * self.unitLengthRatioY / self.pixelOvalRatioY
-  table.insert(self.xxHistory,1,self.xx)
-  table.insert(self.yyHistory,1,self.yy)
+  table.insert(self.xxHistory, 1, self.xx)
+  table.insert(self.yyHistory, 1, self.yy)
   if #self.xxHistory > self.historyLength then
     table.remove(self.xxHistory)
     table.remove(self.yyHistory)
@@ -948,7 +890,7 @@ end
 
 function CursorLocator:isStaticI(i)
   i = i or 1
-  local d = self:dRelative(i, i+1)
+  local d = self:dRelative(i, i + 1)
   local staticRange = self.staticRatio * 32768
   if d > staticRange then
     return false
@@ -1019,7 +961,6 @@ function CursorLocator:isStaticFunc(count)
   end
   return func, notFunc
 end
-
 
 Resource = {
   name = "",
@@ -1480,6 +1421,17 @@ function ProgramRunner:AddReplaceMouseLeftNoReleaseML(replaceKey, blockedActions
   return p
 end
 
+function ProgramRunner:AddCursorLocator(cl, rangeCycles, staticCycles)
+  local cursorLocator = CursorLocator:new(cl)
+  rangeCycles = rangeCycles or 1
+  staticCycles = staticCycles or 2
+  local cursorLocatorUpdater = self:AddClick { key = "", cycleTime = cursorLocator.updateInterval, pressFunc = cursorLocator:GetPositionFunc() }
+  local closeFunc, notCloseFunc = cursorLocator:isCloseFunc(rangeCycles)
+  local farFunc, notfarFunc = cursorLocator:isFarFunc(rangeCycles)
+  local staticFunc = cursorLocator:isStaticFunc(staticCycles)
+  return closeFunc, notCloseFunc, farFunc, notfarFunc, staticFunc
+end
+
 function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
   local p = self:Add {
     holdTime = -1,
@@ -1560,7 +1512,7 @@ function SubActionsMaker:Click(key)
 end
 
 function SubActionsMaker:Function(func, key)
-  self:Add {key = key, pressFunc = func, releaseFunc = doNothing, }
+  self:Add { key = key, pressFunc = func, releaseFunc = doNothing, }
   return self
 end
 
@@ -1957,7 +1909,7 @@ function threads_d3_wiz_meteor()
     key = "1",
   }
 
-  local replaceML = runner:AddReplaceMouseLeft(KEY_D3_FORCE_MOVE, {press1, clickML})
+  local replaceML = runner:AddReplaceMouseLeft(KEY_D3_FORCE_MOVE, { press1, clickML })
   local clickQ = runner:AddClick { key = "q", cycleTime = 500, }
 
   runner:run()
@@ -1984,20 +1936,20 @@ end
 
 function logMousePosition()
   x, y = GetMousePosition()
-  myprint("get mouse position",{x=x,y=y})
+  myprint("get mouse position", { x = x, y = y })
 end
 
 function testMousePosition(x, y)
-  myprint("move mouse position",{x=x,y=y})
+  myprint("move mouse position", { x = x, y = y })
   MoveMouseToVirtual(x, y)
   click("mouseleft")
 end
 
 function pressALot()
   x = 50
-   -- sleepExact(1)
-    press("2")
--- [[
+  -- sleepExact(1)
+  press("2")
+  -- [[
   for _ = 1, 1 do
     Sleep(300)
     press("k")
@@ -2006,11 +1958,10 @@ function pressALot()
     click("1")
     --sleepExact(16)
   end
---]]
+  --]]
   --  sleepExact(1)
-    release("2")
+  release("2")
 end
-
 
 last_release_switch = -9999
 function OnEvent(event, arg)

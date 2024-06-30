@@ -338,7 +338,7 @@ function threads_d4_barb_ww_dust_devil()
     local clickQ = runner:AddClick { key = "Q", cycleTime = D4_POTION_INTERVAL, }
   end
   local clickG = runner:AddClick { key = "G", cycleTime = 100, }
-  local replaceML = runner:AddReplaceMouseLeft("", blockedActions)
+  local replaceML = runner:AddReplaceMouseLeftNoReleaseML(KEY_D4_FORCE_MOVE, blockedActions)
 
   runner:run()
 end
@@ -877,8 +877,8 @@ end
 -- classes
 
 CursorLocator = {
-  closeRatio = 0.18, -- 0.01 = 1/200 screen width
-  staticRatio = 0.01, -- 0.01 = 1/200 screen width
+  closeRatio = 0.35, -- 0.01 = 1/200 screen width
+  staticRatio = 0.02, -- 0.01 = 1/200 screen width
   centerX = 32768,
   centerY = 31468,
   unitLengthRatioY = 9/16, -- width/length ratio of screen
@@ -1474,6 +1474,12 @@ function ProgramRunner:AddReplaceMouseLeft(replaceKey, blockedActions, blockActi
   return p
 end
 
+function ProgramRunner:AddReplaceMouseLeftNoReleaseML(replaceKey, blockedActions, blockActionResource)
+  p = self:AddReplaceMouseLeft(replaceKey, blockedActions, blockActionResource)
+  p.pressFunc = releaseAndPressReplaceKey
+  return p
+end
+
 function ProgramRunner:AddEdgeTrigger(isEnabledFunc, upFunc, downFunc)
   local p = self:Add {
     holdTime = -1,
@@ -1664,6 +1670,18 @@ function releaseAndPressML(replaceKey)
   -- sleep 1 to make sure mouse left is recognized to be released
   -- can be removed if it works
   Sleep(1)
+end
+
+function releaseAndPressReplaceKey(replaceKey)
+  if isOn("lshift") then
+    release("lshift")
+  end
+  if replaceKey ~= "" then
+    release(replaceKey)
+  end
+  if replaceKey ~= "" then
+    press(replaceKey)
+  end
 end
 
 function threads_d3_cru_condemn_s30()

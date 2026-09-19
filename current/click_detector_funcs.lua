@@ -616,7 +616,7 @@ function autoHoldBreath()
 end
 
 funcs = {
-  [G602.down_front] = switchPeek,
+  --[G602.down_front] = switchPeek,
   --[9] = movemouseright50,
   [G602.mouseright] = autoPeek4,
 }
@@ -629,16 +629,22 @@ handler:AddClickDetectorFunc{
 }
 
 handler:AddClickDetectorFunc{
+  gkey = G602.up_mid,
+  modifier = "",
+  onDoubleClickPress = fnEach(click, "u"),
+}
+
+handler:AddClickDetectorFunc{
+  gkey = G602.down_front,
+  onLongClick = fnEach(click, "numlock"),
+  onShortClickRelease = switchPeek,
+}
+
+handler:AddClickDetectorFunc{
   gkey = G602.down_mid,
   modifier = "lalt",
   modifierWarmUpTime = 50,
   onShortClickRelease = fnEach(setOff,"capslock","scrolllock","numlock"),
-}
-
-handler:AddClickDetectorFunc{
-  gkey = G602.up_mid,
-  modifier = "",
-  onDoubleClickPress = fnEach(click, "numlock"),
 }
 
 handler:AddClickDetectorFunc{

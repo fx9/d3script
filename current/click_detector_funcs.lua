@@ -73,6 +73,20 @@ MODIFIER_CHECK_FUNCTIONS = {
   ["mouse5"] = function() return isMouseOn(5) end,
 }
 
+G602 = {
+  mouseleft = 1,
+  mouseright = 2, -- different from MOUSE_KEYS
+  mousemid = 3,
+  down_front = 4,
+  down_mid = 5,
+  down_back = 6,
+  up_front = 7,
+  up_mid = 8,
+  up_back = 9,
+  top_front = 10,
+  top_back = 11,
+}
+
 MOUSE_KEYS = {
   ["mouseleft"] = 1,
   ["mousemid"] = 2,
@@ -265,12 +279,23 @@ function setOff(key)
 end
 
 --- closure functions ---
-function closure(f, ...)
+
+function fnAll(f, ...)
     local args = {...}
     local n = select('#', ...)
     return function()
         return f(unpack(args, 1, n))
     end
+end
+
+function fnEach(func, ...)
+  local keys = {...}
+  local count = select("#", ...)
+  return function()
+    for i = 1, count do
+      func(keys[i])
+    end
+  end
 end
 
 --- long/short/double click functions ---
@@ -368,129 +393,13 @@ end
 
 function FuncTableHandler:AddClickDetectorFunc(p)
   p = ClickDetector:new(p)
-  if p.gkey <= 0 then
+  if p.gkey == nil or p.gkey <= 0 then
     return
   end
   self.funcTable[p.gkey] = p:makeFunc()
 end
 
 --- feature functions ---
-
-function addMouseStats(stats, dx, dy)
-  if dx > 0 then
-    stats["x+"] = stats["x+"] + dx
-  else
-    stats["x-"] = stats["x-"] - dx
-  end
-
-  if dy > 0 then
-    stats["y+"] = stats["y+"] + dy
-  else
-    stats["y-"] = stats["y-"] - dy
-  end
-end
-
-function mergeStats(stats, temp_stats)
-  stats["x+"] = stats["x+"] + temp_stats["x+"]
-  stats["x-"] = stats["x-"] + temp_stats["x-"]
-  stats["y+"] = stats["y+"] + temp_stats["y+"]
-  stats["y-"] = stats["y-"] + temp_stats["y-"]
-  temp_stats["x+"] = 0
-  temp_stats["x-"] = 0
-  temp_stats["y+"] = 0
-  temp_stats["y-"] = 0
-end
-
-record_one_click = true
-function recordMouse()
-  warning = false
-  s=RTime()
-  while isOff("capslock") do
-    Sleep(1)
-    if RTime()-s > 5000 then
-      return
-    end
-  end
-  stats = {
-    ["x+"] = 0,
-    ["x-"] = 0,
-    ["y+"] = 0,
-    ["y-"] = 0,
-  }
-  temp_stats = {
-    ["x+"] = 0,
-    ["x-"] = 0,
-    ["y+"] = 0,
-    ["y-"] = 0,
-  }
-  x, y = GetMousePosition()
-  t0 = 0
-  tx = 0
-  clicks = 0
-  s=RTime()
-  while isOff("mouseleft") do
-    Sleep(1)
-    if RTime()-s > 5000 then
-      return
-    end
-  end
-  t0 = RTime()
-  click_started = false
-  while isOn("capslock") do
-    Sleep(1)
-    -- get pos diff
-    xx, yy = GetMousePosition()
-    if xx == 0 or xx == 65535 or yy == 0 or yy == 65535 then
-       warning = true
-    end
-    dx=xx-x
-    dy=yy-y
-    x=xx
-    y=yy
-
-    -- print diff
-    if dx ~= 0 or dy ~= 0 then
-      --myprint("d_stats",{["dx"] = dx, ["dy"] = dy})
-    end
-
-    addMouseStats(temp_stats, dx, dy)
-    in_click = isOn("mouseleft")
-
-    if record_one_click then
-      if in_click and not click_started then
-        click_started = true
-        t0 = RTime()
-        clicks = clicks + 1
-        mergeStats(temp_stats,temp_stats)
-      end
-      if click_started and not in_click then
-        click_started = false
-        tx = RTime()
-        mergeStats(stats,temp_stats)
-        break
-      end
-    else
-      if in_click and not click_started then
-        click_started = true
-        tx = RTime()
-        clicks = clicks + 1
-        --myprint("one click - temp_stats", temp_stats)
-        --myprint("time",tx-t0)
-        mergeStats(stats,temp_stats)
-      end
-      if click_started and not in_click then
-        click_started = false
-      end
-    end
-  end
-  if warning then
-    myprint("warning: mouse hit boarder")
-    return
-  end
-  myprint("mouse movement",stats)
-  myprint("time",tx-t0)
-  myprint("clicks",clicks)
-end
 
 function movemouseright50()
   MoveMouseRelative(50,0)
@@ -530,22 +439,6 @@ function autoDown()
   end
 end
 
-function onLongShortPress(modifier, onLongPressFunc, onShortPressFunc)
-  return function()
-    local pressTime = RTime()
-    while isOn(modifier) do
-      Sleep(1)
-      holdTime = RTime() - pressTime
-      if holdTime > 210 then
-        onLongPressFunc()
-        return
-      end
-    end
-    onShortPressFunc()
-  end
-end
-
-
 function autoPeek4()
   if isOff("capslock") then
     return
@@ -579,31 +472,6 @@ function autoPeek4()
   release(key)
 end
 
-function isPeekLeft()
-  if isOff("capslock") then
-    return false
-  end
-  if isOn("scrolllock") then
-    return true
-  end
-  if isOn("numlock") then
-    return false
-  end
-  x0, y0 = GetMousePosition()
-  while true do
-    Sleep(25)
-    x1, y1 = GetMousePosition()
-    if x1 ~= x0 or y1 ~= y0 then
-      break
-    end
-  end
-  Sleep(50)
-  x2, y2 = GetMousePosition()
-  pl = x0 > x1 and x1 > x2
-  return pl
-end
-
-
 function switchPeek()
   if isOff("capslock") then
     setOn("capslock")
@@ -611,37 +479,6 @@ function switchPeek()
     return
   end
   click("scrolllock")
-end
-
---[[
-function onDblClick(func)
-  local func_last_press = -9999
-  local function funcOnDblClick()
-    --myprint("func_last_press",func_last_press)
-    if GetRunningTime() - func_last_press <= 200 then
-      func()
-    end
-    func_last_press=GetRunningTime()
-  end
-  return funcOnDblClick
-end
-
-G_LAST_PRESS=-9999
-function numLockOnDblClick()
-  if GetRunningTime() - G_LAST_PRESS <= 200 then
-    click("numlock")
-  end
-  G_LAST_PRESS=GetRunningTime()
-end
---]]
-function clickNumLock()
-  click("numlock")
-end
-
-function resetLocks()
-  setOff("capslock")
-  setOff("scrolllock")
-  setOff("numlock")
 end
 
 function autoHoldBreath()
@@ -652,43 +489,39 @@ function autoHoldBreath()
 end
 
 funcs = {
-  --[10] = markAndSecondInteract3,
-  [4] = switchPeek,
-  --[5] = resetLocksOnDblClick,
-  --[8] = numLockOnDblClick,
+  [G602.down_front] = switchPeek,
   --[9] = movemouseright50,
-  --[6] = bandageAndMapZoom,
-  [2] = autoPeek4,
+  [G602.mouseright] = autoPeek4,
 }
 
 handler = FuncTableHandler:new{funcTable = funcs}
 handler:AddClickDetectorFunc{
-  gkey = 10,
-  onLongClick = closure(click,"h"),
-  onShortClickRelease = closure(click,"g"),
+  gkey = G602.top_front,
+  onLongClick = fnEach(click,"h"),
+  onShortClickRelease = fnEach(click,"g"),
 }
 
 handler:AddClickDetectorFunc{
-  gkey = 5,
+  gkey = G602.down_mid,
   modifier = "lalt",
   modifierWarmUpTime = 50,
-  onShortClickRelease = resetLocks,
+  onShortClickRelease = fnEach(setOff,"capslock","scrolllock","numlock"),
 }
 
 handler:AddClickDetectorFunc{
-  gkey = 8,
+  gkey = G602.up_mid,
   modifier = "",
-  onDoubleClickPress = clickNumLock,
+  onDoubleClickPress = fnEach(click, "numlock"),
 }
 
 handler:AddClickDetectorFunc{
-  gkey = 6,
-  onLongClick = closure(click,"n"),
-  onShortClickRelease = closure(click,"9"),
+  gkey = G602.down_back,
+  onLongClick = fnEach(click,"n"),
+  onShortClickRelease = fnEach(click,"9"),
 }
 
 release_funcs = {
-  [2] = autoHoldBreath,
+  [G602.mouseright] = autoHoldBreath,
 }
 
 function OnEvent(event, arg)
@@ -709,4 +542,3 @@ function OnEvent(event, arg)
     end
   end
 end
-

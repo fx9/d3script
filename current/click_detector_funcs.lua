@@ -298,7 +298,7 @@ function fnEach(func, ...)
   end
 end
 
---- long/short/double click functions ---
+--- click detector functions ---
 
 function doNothing()
 end
@@ -386,6 +386,7 @@ FuncTableHandler.__index = FuncTableHandler
 
 function FuncTableHandler:new(o)
   o = o or {}
+  o.funcTable = o.funcTable or {}
   setmetatable(o, self)
   --self.__index = self
   return o
@@ -398,6 +399,101 @@ function FuncTableHandler:AddClickDetectorFunc(p)
   end
   self.funcTable[p.gkey] = p:makeFunc()
 end
+
+--- advanced action functions ---
+
+AdvancedAction = {
+  name = "",
+  enabled = false,
+  delay = 0,
+  upFunc = doNothing,
+  downFunc = doNothing,
+  -- private
+  triggered = false
+}
+AdvancedAction.__index = AdvancedAction
+
+function AdvancedAction:new(o)
+  o = o or {}
+  setmetatable(o, self)
+  --self.__index = self
+  return o
+end
+
+function AdvancedAction:up(holdTime)
+  if not self.enabled then
+    return
+  end
+  if not self.triggered and holdTime > self.delay then
+    self.upFunc()
+    self.triggered = true
+  end
+end
+
+function AdvancedAction:down()
+  if self.triggered then
+    self.downFunc()
+    self.triggered = false
+  end
+end
+
+AdvancedActionsHandler = {
+  actions = {},
+  startCondition = function() return true end,
+  -- private
+  startTime = 0,
+  started = false,
+}
+AdvancedActionsHandler.__index = AdvancedActionsHandler
+
+function AdvancedActionsHandler:new(o)
+  o = o or {}
+  o.actions = o.actions or {}
+  setmetatable(o, self)
+  --self.__index = self
+  return o
+end
+
+function AdvancedActionsHandler:Add(p)
+  p = AdvancedAction:new(p)
+  table.insert(self.actions,p)
+end
+
+function AdvancedActionsHandler:Start()
+  if self.started then
+    return
+  end
+  if not self.startCondition() then
+    return
+  end
+  self.startTime = RTime()
+  self.started = true
+end
+
+function AdvancedActionsHandler:Up()
+  if not self.started then
+    return
+  end
+  local holdTime = RTime() - self.startTime
+  for _, action in ipairs(self.actions) do
+    action:up(holdTime)
+  end
+end
+
+function AdvancedActionsHandler:ShouldStop()
+  return self.started and not self.startCondition()
+end
+
+function AdvancedActionsHandler:Down()
+  if not self.started then
+    return
+  end
+  for _, action in ipairs(self.actions) do
+    action:down()
+  end
+  self.started = false
+end
+
 
 --- feature functions ---
 
@@ -439,6 +535,25 @@ function autoDown()
   end
 end
 
+aaHandler = AdvancedActionsHandler:new{
+  startCondition = function() return isOn("mouseleft") end,
+}
+aaHandler:Add{
+  name = "autoScope",
+  enabled = true,
+  delay = 700,
+  upFunc = fnEach(click, "j"),
+  downFunc = fnEach(click, "j"),
+}
+
+aaHandler:Add{
+  name = "autoCrouch",
+  enabled = false,
+  delay = 300,
+  upFunc = fnEach(click, "c"),
+  downFunc = fnEach(click, "c"),
+}
+
 function autoPeek4()
   if isOff("capslock") then
     return
@@ -446,7 +561,7 @@ function autoPeek4()
   if isOff("mouseright") then
     return
   end
-  local autoC = isOn("numlock")
+  local advancedActions = isOn("numlock")
   local peekLeft = isOn("scrolllock")
   local key = "e"
   if peekLeft then
@@ -456,18 +571,22 @@ function autoPeek4()
   if peekLeft then
     click("v")
   end
-  if autoC then
-    click("c")
-  end
-  Sleep(50)
+  -- Sleep(50)
   while isOn("mouseright") do
-    Sleep(50)
+    if advancedActions then
+      aaHandler:Start()
+      aaHandler:Up()
+      if aaHandler:ShouldStop() then
+        aaHandler:Down()
+      end
+    end
+    Sleep(1)
   end
   if peekLeft then
     click("v")
   end
-  if autoC then
-    click("c")
+  if advancedActions then
+    aaHandler:Down()
   end
   release(key)
 end
@@ -498,7 +617,7 @@ handler = FuncTableHandler:new{funcTable = funcs}
 handler:AddClickDetectorFunc{
   gkey = G602.top_front,
   onLongClick = fnEach(click,"h"),
-  onShortClickRelease = fnEach(click,"g"),
+  onShortClickRelease = fnEach(click,"f8"),
 }
 
 handler:AddClickDetectorFunc{

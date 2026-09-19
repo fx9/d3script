@@ -538,20 +538,28 @@ end
 aaHandler = AdvancedActionsHandler:new{
   startCondition = function() return isOn("mouseleft") end,
 }
+
 aaHandler:Add{
   name = "autoScope",
   enabled = true,
-  delay = 700,
+  delay = 500,
   upFunc = fnEach(click, "j"),
   downFunc = fnEach(click, "j"),
 }
 
 aaHandler:Add{
   name = "autoCrouch",
-  enabled = false,
-  delay = 300,
+  enabled = true,
+  delay = 600,
   upFunc = fnEach(click, "c"),
   downFunc = fnEach(click, "c"),
+}
+
+aaHandler:Add{
+  name = "autoHoldBreath",
+  enabled = true,
+  delay = 550,
+  upFunc = fnEach(click, "ralt"),
 }
 
 function autoPeek4()
@@ -568,7 +576,7 @@ function autoPeek4()
     key = "q"
   end
   press(key)
-  if peekLeft then
+  if peekLeft or advancedActions then
     click("v")
   end
   -- Sleep(50)
@@ -582,7 +590,7 @@ function autoPeek4()
     end
     Sleep(1)
   end
-  if peekLeft then
+  if peekLeft or advancedActions then
     click("v")
   end
   if advancedActions then

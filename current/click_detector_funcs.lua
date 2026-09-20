@@ -562,19 +562,50 @@ function createAAHandler(autoScopeBaseline)
     downFunc = fnEach(click, "v"),
   }
 
+  local manualAutoScopeTriggerTime = 0
+  function autoScopeEnabled()
+    if autoScopeBaseline > 0 then
+      return true
+    end
+    if manualAutoScopeTriggerTime == 0 and isOn("lshift") then
+      manualAutoScopeTriggerTime = RTime()
+      return true
+    end
+    return false
+  end
+
+  local autoCrouchOffset = 75
+  function autoCrouchEnabled()
+    if autoScopeBaseline > 0 then
+      return true
+    end
+    return manualAutoScopeTriggerTime > 0 and RTime() > manualAutoScopeTriggerTime + autoCrouchOffset
+  end
+
+  local autoHoldBreathOffset = 50
+  function autoHoldBreathEnabled()
+    if autoScopeBaseline > 0 then
+      return true
+    end
+    return manualAutoScopeTriggerTime > 0 and RTime() > manualAutoScopeTriggerTime + autoHoldBreathOffset
+  end
+
   aaHandler:Add{
     name = "autoScope",
+    enabledFunc = autoScopeEnabled,
     delay = autoScopeBaseline,
     upFunc = fnEach(click, "j"),
     downFunc = function()
       if isOn("mouseright") then
         click("j")
       end
+      manualAutoScopeTriggerTime = 0
     end ,
   }
 
   aaHandler:Add{
     name = "autoCrouch",
+    enabledFunc = autoCrouchEnabled,
     delay = autoScopeBaseline+75,
     upFunc = fnEach(click, "c"),
     downFunc = fnEach(click, "c"),
@@ -582,6 +613,7 @@ function createAAHandler(autoScopeBaseline)
 
   aaHandler:Add{
     name = "autoHoldBreath",
+    enabledFunc = autoHoldBreathEnabled,
     delay = autoScopeBaseline+50,
     upFunc = fnEach(click, "ralt"),
   }
@@ -589,16 +621,18 @@ function createAAHandler(autoScopeBaseline)
 end
 
 function autoPeek4()
-  if isOff("capslock") then
+  if isOff("capslock") and isOff("numlock") then
     return
   end
   if isOff("mouseright") then
     return
   end
-  local fasterAutoScope = isOn("numlock")
-  local autoScopeBaseline = 1400
-  if fasterAutoScope then
-    autoScopeBaseline = 500
+  local autoScopeBaseline = 0
+  if isOn("numlock") then
+    autoScopeBaseline = 1400
+    if isOff("capslock") then
+      autoScopeBaseline = 500
+    end
   end
   local aaHandler = createAAHandler(autoScopeBaseline)
   local peekLeft = isOn("scrolllock")

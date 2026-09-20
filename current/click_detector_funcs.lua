@@ -402,9 +402,17 @@ end
 
 --- advanced action functions ---
 
+function returnTrue()
+  return true
+end
+
+function returnFalse()
+  return false
+end
+
 AdvancedAction = {
   name = "",
-  enabled = false,
+  enabledFunc = returnTrue,
   delay = 0,
   upFunc = doNothing,
   downFunc = doNothing,
@@ -421,7 +429,7 @@ function AdvancedAction:new(o)
 end
 
 function AdvancedAction:up(holdTime)
-  if not self.enabled then
+  if not self.enabledFunc() then
     return
   end
   if not self.triggered and holdTime > self.delay then
@@ -439,7 +447,7 @@ end
 
 AdvancedActionsHandler = {
   actions = {},
-  startCondition = function() return true end,
+  startCondition = returnTrue,
   -- private
   startTime = 0,
   started = false,
@@ -535,32 +543,50 @@ function autoDown()
   end
 end
 
-aaHandler = AdvancedActionsHandler:new{
-  startCondition = function() return isOn("mouseleft") end,
-}
 
-aaHandler:Add{
-  name = "autoScope",
-  enabled = true,
-  delay = 500,
-  upFunc = fnEach(click, "j"),
-  downFunc = fnEach(click, "j"),
-}
+function createAAHandler(autoScopeBaseline)
+  local aaHandler = AdvancedActionsHandler:new{
+    startCondition = function() return isOn("mouseleft") end,
+  }
 
-aaHandler:Add{
-  name = "autoCrouch",
-  enabled = true,
-  delay = 600,
-  upFunc = fnEach(click, "c"),
-  downFunc = fnEach(click, "c"),
-}
+  local autoFPP_initTime = RTime()
+  local autoFPP_enableWindow = 300
+  function autoFPPEnabled()
+    return isOn("scrolllock") and RTime() <= autoFPP_initTime + autoFPP_enableWindow
+  end
+  aaHandler:Add{
+    name = "autoFPP",
+    enabledFunc = autoFPPEnabled,
+    delay = 0,
+    upFunc = fnEach(click, "v"),
+    downFunc = fnEach(click, "v"),
+  }
 
-aaHandler:Add{
-  name = "autoHoldBreath",
-  enabled = true,
-  delay = 550,
-  upFunc = fnEach(click, "ralt"),
-}
+  aaHandler:Add{
+    name = "autoScope",
+    delay = autoScopeBaseline,
+    upFunc = fnEach(click, "j"),
+    downFunc = function()
+      if isOn("mouseright") then
+        click("j")
+      end
+    end ,
+  }
+
+  aaHandler:Add{
+    name = "autoCrouch",
+    delay = autoScopeBaseline+75,
+    upFunc = fnEach(click, "c"),
+    downFunc = fnEach(click, "c"),
+  }
+
+  aaHandler:Add{
+    name = "autoHoldBreath",
+    delay = autoScopeBaseline+50,
+    upFunc = fnEach(click, "ralt"),
+  }
+  return aaHandler
+end
 
 function autoPeek4()
   if isOff("capslock") then
@@ -569,33 +595,28 @@ function autoPeek4()
   if isOff("mouseright") then
     return
   end
-  local advancedActions = isOn("numlock")
+  local fasterAutoScope = isOn("numlock")
+  local autoScopeBaseline = 1400
+  if fasterAutoScope then
+    autoScopeBaseline = 500
+  end
+  local aaHandler = createAAHandler(autoScopeBaseline)
   local peekLeft = isOn("scrolllock")
   local key = "e"
   if peekLeft then
     key = "q"
   end
   press(key)
-  if peekLeft or advancedActions then
-    click("v")
-  end
   -- Sleep(50)
   while isOn("mouseright") do
-    if advancedActions then
-      aaHandler:Start()
-      aaHandler:Up()
-      if aaHandler:ShouldStop() then
-        aaHandler:Down()
-      end
+    aaHandler:Start()
+    aaHandler:Up()
+    if aaHandler:ShouldStop() then
+      aaHandler:Down()
     end
     Sleep(1)
   end
-  if peekLeft or advancedActions then
-    click("v")
-  end
-  if advancedActions then
-    aaHandler:Down()
-  end
+  aaHandler:Down()
   release(key)
 end
 

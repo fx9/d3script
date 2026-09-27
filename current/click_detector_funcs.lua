@@ -620,10 +620,47 @@ function createAAHandler(autoScopeBaseline)
   return aaHandler
 end
 
-function autoPeek4()
+function onMouseRightSingleClickPress()
+  multifunctionalMouseRight(true, false)
+end
+
+function onMouseRightDoubleClickPress()
+  multifunctionalMouseRight(true, true)
+end
+
+function onMouseRightRelease()
+  multifunctionalMouseRight(false, false)
+end
+
+
+-- readSignal returns needsAction, scopeOn, shouldReleaseFunc
+function readSignal(isPress, isDoubleClickPress)
+  if isDoubleClickPress then
+    -- a good signal: needs action, scope is on, should release when mouseright is released
+    return true, true, function() return isOff("mouseright")  end
+  end
+  if isPress then
+    -- a mixed signal: needs action, scope may or may not be on (treat it as off), should release when mouseright is released
+    return true, false, function() return isOff("mouseright")  end
+  end
+  -- a release - needs action only if signal is otherwise clear
+  if isOn("lshift") then
+    -- a good signal: needs action, scope is on, should release when mouseright is pressed
+    return true, true, function() return isOn("mouseright")  end
+  end
+  if isOn("numlock") then
+    -- a forced signal: needs action, scope is on, should release when mouseright is pressed
+    -- signal is consumed in this case
+    setOff("numlock")
+    return true, true, function() return isOn("mouseright")  end
+  end
+end
+
+function multifunctionalMouseRight(isPress, isDoubleClickPress)
   if isOff("capslock") then
     return
   end
+  local needsAction, scopeOn, shouldReleaseFunc =  readSignal(isPress, isDoubleClickPress)
   Sleep(1)
   local scopeOn = isOff("mouseright")
   if scopeOn then
@@ -700,7 +737,7 @@ end
 
 funcs = {
   --[G602.down_front] = switchPeek,
-  [G602.mouseright] = autoPeek4,
+  --[G602.mouseright] = onMouseRightPress,
 }
 
 handler = FuncTableHandler:new{funcTable = funcs}
@@ -746,8 +783,15 @@ handler:AddClickDetectorFunc{
 --]]
 
 release_funcs = {
-  [G602.mouseright] = autoPeek4,
   --[G602.mouseright] = autoHoldBreath,
+}
+
+handler:AddClickDetectorFunc{
+  gkey = G602.mouseright,
+  modifier = "mouseright",
+  onSingleClickPress = onMouseRightSingleClickPress,
+  onDoubleClickPress = onMouseRightDoubleClickPress,
+  onShortClickRelease = onMouseRightRelease,
 }
 
 function OnEvent(event, arg)

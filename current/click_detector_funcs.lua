@@ -621,18 +621,24 @@ function createAAHandler(autoScopeBaseline)
 end
 
 function autoPeek4()
-  if isOff("capslock") and isOff("numlock") then
+  if isOff("capslock") then
     return
   end
-  if isOff("mouseright") then
-    return
+  Sleep(1)
+  local scopeOn = isOff("mouseright")
+  if scopeOn then
+    if isOff("lshift") then
+      return
+    end
   end
   local autoScopeBaseline = 0
-  if isOn("numlock") then
-    autoScopeBaseline = 1400
-    if isOff("capslock") then
-      autoScopeBaseline = 500
-    end
+  local mouseleftRePressWaitTime = 0
+  local mouseleftRePressTime = 0
+  local mouseleftRePressNextTriggerTime = 0
+  local mouseleftRePressCooldown = 1000
+  if scopeOn or isOn("numlock") then
+  --  autoScopeBaseline = 500
+    mouseleftRePressWaitTime = 150
   end
   local aaHandler = createAAHandler(autoScopeBaseline)
   local peekLeft = isOn("scrolllock")
@@ -642,16 +648,38 @@ function autoPeek4()
   end
   press(key)
   -- Sleep(50)
-  while isOn("mouseright") do
-    aaHandler:Start()
-    aaHandler:Up()
-    if aaHandler:ShouldStop() then
-      aaHandler:Down()
+  function shouldExit()
+    if scopeOn then
+      return isOn("mouseright")
+    else
+      return isOff("mouseright")
+    end
+  end
+  while not shouldExit() do
+    if not scopeOn then
+      aaHandler:Start()
+      aaHandler:Up()
+      if aaHandler:ShouldStop() then
+        aaHandler:Down()
+      end
     end
     Sleep(1)
+    local currTime = RTime()
+    if isOn("mouseleft") and mouseleftRePressWaitTime > 0 and currTime > mouseleftRePressNextTriggerTime then
+      mouseleftRePressNextTriggerTime = currTime + mouseleftRePressCooldown
+      mouseleftRePressTime = currTime + mouseleftRePressWaitTime
+      release("mouseleft")
+    end
+    if mouseleftRePressTime > 0 and currTime > mouseleftRePressTime then
+      mouseleftRePressTime = 0
+      press("mouseleft")
+    end
   end
   aaHandler:Down()
   release(key)
+  if mouseleftRePress > 0 then
+    release("mouseleft")
+  end
 end
 
 function switchPeek()
@@ -672,7 +700,6 @@ end
 
 funcs = {
   --[G602.down_front] = switchPeek,
-  --[9] = movemouseright50,
   [G602.mouseright] = autoPeek4,
 }
 
@@ -685,8 +712,8 @@ handler:AddClickDetectorFunc{
 
 handler:AddClickDetectorFunc{
   gkey = G602.up_mid,
-  modifier = "",
-  onDoubleClickPress = fnEach(click, "u"),
+  onLongClick = fnEach(click, "v"),
+  onShortClickRelease = fnEach(click,"k"),
 }
 
 handler:AddClickDetectorFunc{
@@ -702,14 +729,25 @@ handler:AddClickDetectorFunc{
   onShortClickRelease = fnEach(setOff,"capslock","scrolllock","numlock"),
 }
 
+--[[
+handler:AddClickDetectorFunc{
+  gkey = G602.down_back,
+  onLongClick = movemouseright500,
+  onShortClickRelease = movemouseright50,
+}
+--]]
+
+-- [[
 handler:AddClickDetectorFunc{
   gkey = G602.down_back,
   onLongClick = fnEach(click,"n"),
   onShortClickRelease = fnEach(click,"9"),
 }
+--]]
 
 release_funcs = {
-  [G602.mouseright] = autoHoldBreath,
+  [G602.mouseright] = autoPeek4,
+  --[G602.mouseright] = autoHoldBreath,
 }
 
 function OnEvent(event, arg)

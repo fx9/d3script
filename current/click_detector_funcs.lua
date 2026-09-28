@@ -360,6 +360,13 @@ function ClickDetector:makeFunc()
       if self.modifierWarmUpTime > 0 then
         Sleep(self.modifierWarmUpTime)
       end
+      -- if previous functions contain a while isOn(self.modifier) do loop,
+      -- it may already be pressed long enough to be a long click here while self.modifier is already off.
+      -- therefore we should first check once for long click
+      if self:isLongClick(pressTime) then
+        self.onLongClick(isSingleClick)
+        longClickTriggered = true
+      end
       while isOn(self.modifier) do
         Sleep(1)
         if not longClickTriggered and self:isLongClick(pressTime) then
@@ -551,7 +558,7 @@ function createAAHandler(autoScopeBaseline)
 
   local autoFPP_initTime = RTime()
   local autoFPP_enableWindow = 300
-  function autoFPPEnabled()
+  local function autoFPPEnabled()
     return isOn("scrolllock") and RTime() <= autoFPP_initTime + autoFPP_enableWindow
   end
   aaHandler:Add{
@@ -563,7 +570,7 @@ function createAAHandler(autoScopeBaseline)
   }
 
   local manualAutoScopeTriggerTime = 0
-  function autoScopeEnabled()
+  local function autoScopeEnabled()
     if autoScopeBaseline > 0 then
       return true
     end
@@ -575,7 +582,7 @@ function createAAHandler(autoScopeBaseline)
   end
 
   local autoCrouchOffset = 75
-  function autoCrouchEnabled()
+  local function autoCrouchEnabled()
     if autoScopeBaseline > 0 then
       return true
     end
@@ -583,7 +590,7 @@ function createAAHandler(autoScopeBaseline)
   end
 
   local autoHoldBreathOffset = 50
-  function autoHoldBreathEnabled()
+  local function autoHoldBreathEnabled()
     if autoScopeBaseline > 0 then
       return true
     end
@@ -610,13 +617,14 @@ function createAAHandler(autoScopeBaseline)
     upFunc = fnEach(click, "c"),
     downFunc = fnEach(click, "c"),
   }
-
+--[[
   aaHandler:Add{
     name = "autoHoldBreath",
     enabledFunc = autoHoldBreathEnabled,
     delay = autoScopeBaseline+50,
     upFunc = fnEach(click, "ralt"),
   }
+--]]
   return aaHandler
 end
 
@@ -633,49 +641,79 @@ function onMouseRightRelease()
 end
 
 
--- readSignal returns needsAction, scopeOn, shouldReleaseFunc
+-- readSignal returns needsAction, scopeOn, shouldExitFunc, onExitFunc
+lastMouseRightReleaseEventTime = -9999
+function onMouseRightReleaseEvent()
+  lastMouseRightReleaseEventTime = RTime()
+end
+readSignalLongIntervaTime = 200
 function readSignal(isPress, isDoubleClickPress)
+  local function shouldExitFuncForPress()
+    return isOff("mouseright")
+  end
+  local function shouldExitFuncForRelease()
+    return isOn("mouseright") or isOn("mouse5") or isOn("mouse4") or isOn("alt")
+  end
+  local function numlockOff()
+    setOff("numlock")
+  end
+  local onExitFunc = doNothing
   if isDoubleClickPress then
     -- a good signal: needs action, scope is on, should release when mouseright is released
-    return true, true, function() return isOff("mouseright")  end
+    if isOff("numlock") then
+      setOn("numlock")
+      onExitFunc = numlockOff
+    end
+    return true, true, shouldExitFuncForPress, onExitFunc
   end
   if isPress then
     -- a mixed signal: needs action, scope may or may not be on (treat it as off), should release when mouseright is released
-    return true, false, function() return isOff("mouseright")  end
+    return true, false, shouldExitFuncForPress, onExitFunc
   end
   -- a release - needs action only if signal is otherwise clear
   if isOn("lshift") then
     -- a good signal: needs action, scope is on, should release when mouseright is pressed
-    return true, true, function() return isOn("mouseright")  end
+    if isOff("numlock") then
+      setOn("numlock")
+      onExitFunc = numlockOff
+    end
+    return true, true, shouldExitFuncForRelease, onExitFunc
   end
-  if isOn("numlock") then
+  -- only check on long interval since last release event, so it won't trigger on scope off when numlock is on and shift path is triggered
+  local longInterval = RTime() - lastMouseRightReleaseEventTime > readSignalLongIntervaTime
+  if longInterval and isOn("numlock") then
     -- a forced signal: needs action, scope is on, should release when mouseright is pressed
     -- signal is consumed in this case
-    setOff("numlock")
-    return true, true, function() return isOn("mouseright")  end
+    onExitFunc = numlockOff
+    return true, true, shouldExitFuncForRelease, onExitFunc
   end
+  return false, false, nil, nil
 end
 
+NOT_ENABLED = -1
+WAIT_FOR_ML_PRESS = 0
+WAIT_FOR_ML_RE_PRESS = 1
+WAIT_FOR_ML_RELEASE = 2
 function multifunctionalMouseRight(isPress, isDoubleClickPress)
   if isOff("capslock") then
     return
   end
-  local needsAction, scopeOn, shouldReleaseFunc =  readSignal(isPress, isDoubleClickPress)
+  -- avoid same-frame actions that have side effect on action queue
   Sleep(1)
-  local scopeOn = isOff("mouseright")
-  if scopeOn then
-    if isOff("lshift") then
-      return
-    end
+  local needsAction, scopeOn, shouldExitFunc, onExitFunc =  readSignal(isPress, isDoubleClickPress)
+  if not needsAction then
+    return
   end
-  local autoScopeBaseline = 0
-  local mouseleftRePressWaitTime = 0
+
+  local autoScopeBaseline = 0 -- unused for now
+
+  local mouseleftRePressStatus = NOT_ENABLED
+  local mouseleftRePressFirstShotWaitTime = 150
+  local mouseleftRePressCooldown = 1000
   local mouseleftRePressTime = 0
   local mouseleftRePressNextTriggerTime = 0
-  local mouseleftRePressCooldown = 1000
-  if scopeOn or isOn("numlock") then
-  --  autoScopeBaseline = 500
-    mouseleftRePressWaitTime = 150
+  if scopeOn then
+    mouseleftRePressStatus = WAIT_FOR_ML_PRESS
   end
   local aaHandler = createAAHandler(autoScopeBaseline)
   local peekLeft = isOn("scrolllock")
@@ -684,15 +722,7 @@ function multifunctionalMouseRight(isPress, isDoubleClickPress)
     key = "q"
   end
   press(key)
-  -- Sleep(50)
-  function shouldExit()
-    if scopeOn then
-      return isOn("mouseright")
-    else
-      return isOff("mouseright")
-    end
-  end
-  while not shouldExit() do
+  while not shouldExitFunc() do
     if not scopeOn then
       aaHandler:Start()
       aaHandler:Up()
@@ -702,21 +732,27 @@ function multifunctionalMouseRight(isPress, isDoubleClickPress)
     end
     Sleep(1)
     local currTime = RTime()
-    if isOn("mouseleft") and mouseleftRePressWaitTime > 0 and currTime > mouseleftRePressNextTriggerTime then
+    if mouseleftRePressStatus == WAIT_FOR_ML_PRESS and isOn("mouseleft") and  currTime > mouseleftRePressNextTriggerTime then
       mouseleftRePressNextTriggerTime = currTime + mouseleftRePressCooldown
-      mouseleftRePressTime = currTime + mouseleftRePressWaitTime
+      mouseleftRePressTime = currTime + mouseleftRePressFirstShotWaitTime
       release("mouseleft")
+      mouseleftRePressStatus = WAIT_FOR_ML_RE_PRESS
     end
-    if mouseleftRePressTime > 0 and currTime > mouseleftRePressTime then
+    if mouseleftRePressStatus == WAIT_FOR_ML_RE_PRESS and currTime > mouseleftRePressTime then
       mouseleftRePressTime = 0
       press("mouseleft")
+      mouseleftRePressStatus = WAIT_FOR_ML_RELEASE
+    end
+    if mouseleftRePressStatus == WAIT_FOR_ML_RELEASE and isOff("mouseleft") then
+      mouseleftRePressStatus = WAIT_FOR_ML_PRESS
     end
   end
   aaHandler:Down()
   release(key)
-  if mouseleftRePress > 0 then
+  if mouseleftRePressStatus ~= NOT_ENABLED then
     release("mouseleft")
   end
+  onExitFunc()
 end
 
 function switchPeek()
@@ -783,12 +819,14 @@ handler:AddClickDetectorFunc{
 --]]
 
 release_funcs = {
-  --[G602.mouseright] = autoHoldBreath,
+  [G602.mouseright] = onMouseRightReleaseEvent,
 }
 
 handler:AddClickDetectorFunc{
   gkey = G602.mouseright,
   modifier = "mouseright",
+  doubleClickTime = 300,
+  longClickTime = 150,
   onSingleClickPress = onMouseRightSingleClickPress,
   onDoubleClickPress = onMouseRightDoubleClickPress,
   onShortClickRelease = onMouseRightRelease,

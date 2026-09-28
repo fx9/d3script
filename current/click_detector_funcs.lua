@@ -617,14 +617,13 @@ function createAAHandler(autoScopeBaseline)
     upFunc = fnEach(click, "c"),
     downFunc = fnEach(click, "c"),
   }
---[[
+
   aaHandler:Add{
     name = "autoHoldBreath",
     enabledFunc = autoHoldBreathEnabled,
     delay = autoScopeBaseline+50,
     upFunc = fnEach(click, "ralt"),
   }
---]]
   return aaHandler
 end
 

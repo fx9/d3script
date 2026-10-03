@@ -106,6 +106,23 @@ LOCK_KEYS = {
   ["numlock"] = 1,
 }
 
+KEY_NAME_MAP = {
+  ["~"] = "tilde",
+  ["`"] = "tilde",
+  ["-"] = "minus",
+  ["="] = "equal",
+  ["["] = "lbracket",
+  ["]"] = "rbracket",
+  ["\\"] = "backslash",
+  [";"] = "semicolon",
+  ["'"] = "quote",
+  [","] = "comma",
+  ["."] = "period",
+  ["/"] = "slash",
+  ["esc"] = "escape",
+  [" "] = "spacebar",
+}
+
 MODIFIER_ON_CACHE = {}
 
 ---- cooldown click functions ----
@@ -250,6 +267,10 @@ function click(target)
     elseif key == "" then
       -- do nothing
     else
+      local keyName = KEY_NAME_MAP[key]
+      if keyName ~= nil then
+        key = keyName
+      end
       PressAndReleaseKey(key)
     end
   else
@@ -586,6 +607,9 @@ function createAAHandler(autoScopeBaseline, holdToScope)
     upFunc = fnEach(click, "v"),
     downFunc = fnEach(click, "v"),
   }
+
+
+
   -- only need auto FPP
   --[[
   local manualAutoScopeTriggerTime = 0

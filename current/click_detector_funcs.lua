@@ -188,6 +188,26 @@ function checkCd(key, cd)
   return RTime() - last_key_time(key) >= cd
 end
 
+
+clickAtTime = {}
+function clickAt(key, time)
+  clickAtTime[key] = time
+end
+
+function removeScheduledClick(key)
+  clickAtTime[key] = nil
+end
+
+function execScheduledClicks()
+  local currTime = RTime()
+  for key, time in pairs(clickAtTime) do
+    if currTime > time then
+      click(key)
+      clickAtTime[key] = nil
+    end
+  end
+end
+
 ---- isOn functions ----
 
 function isOnCached(flag)
@@ -670,6 +690,7 @@ function createAAHandler(autoScopeBaseline, holdToScope)
   return aaHandler
 end
 
+inPractice = false
 function onMouseRightSingleClickPress()
   multifunctionalMouseRight(true, false)
 end
@@ -679,6 +700,9 @@ function onMouseRightDoubleClickPress()
 end
 
 function onMouseRightRelease()
+  if not inPractice then
+    return
+  end
   multifunctionalMouseRight(false, false)
 end
 
@@ -689,7 +713,6 @@ function onMouseRightReleaseEvent()
   lastMouseRightReleaseEventTime = RTime()
 end
 readSignalLongIntervaTime = 200
-inPractice = false
 function readSignal(isPress, isDoubleClickPress)
   -- isDoubleClickPress is unused for now
   local function shouldExitFuncForPress()
@@ -734,7 +757,8 @@ function multifunctionalMouseRight(isPress, isDoubleClickPress)
   if not needsAction then
     return
   end
-  local holdToScope = isOn("numlock")
+  local holdToScope = false
+  local holdToMute = isOn("numlock")
   local autoScopeBaseline = 0 -- unused for now
   local aaHandler = createAAHandler(autoScopeBaseline, holdToScope)
   local peekLeft = isOn("scrolllock")
@@ -744,6 +768,9 @@ function multifunctionalMouseRight(isPress, isDoubleClickPress)
   end
   if shouldPeek then
     press(key)
+  end
+  if holdToMute then
+    click("[")
   end
   if holdToScope then
     press("j")
@@ -766,6 +793,10 @@ function multifunctionalMouseRight(isPress, isDoubleClickPress)
     release("j")
   end
   onExitFunc()
+  if holdToMute then
+    Sleep(120)
+    click("[")
+  end
 end
 
 function switchPeek()
@@ -810,7 +841,7 @@ end
 
 funcs = {
   --[G602.down_front] = switchPeek,
-  --[G602.mouseright] = onMouseRightPress,
+  [G602.mouseright] = onMouseRightSingleClickPress,
   --[G602.down_back] = logMouse,
 }
 
@@ -823,7 +854,7 @@ handler:AddClickDetectorFunc{
 
 handler:AddClickDetectorFunc{
   gkey = G602.up_mid,
-  onLongClick = fnEach(click, "v"),
+  onLongClick = fnEach(click, "["),
   onShortClickRelease = fnEach(click,"k"),
 }
 
@@ -860,6 +891,7 @@ release_funcs = {
   [G602.mouseright] = onMouseRightReleaseEvent,
 }
 
+--[[
 handler:AddClickDetectorFunc{
   gkey = G602.mouseright,
   modifier = "mouseright",
@@ -869,6 +901,7 @@ handler:AddClickDetectorFunc{
   onDoubleClickPress = onMouseRightDoubleClickPress,
   onShortClickRelease = onMouseRightRelease,
 }
+--]]
 
 function OnEvent(event, arg)
   --OutputLogMessage("event = %s, arg = %s\n", event, arg)
